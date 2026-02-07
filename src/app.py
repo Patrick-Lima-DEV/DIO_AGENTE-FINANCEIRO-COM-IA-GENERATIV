@@ -18,11 +18,18 @@ import google.generativeai as genai
 # ===== CONFIGURAÇÃO DE AMBIENTE =====
 load_dotenv()
 api_key = os.getenv("GOOGLE_API_KEY")
-if api_key:
-    genai.configure(api_key=api_key)
-    modelo_gemini = genai.GenerativeModel('gemini-2.5-flash')
-else:
-    modelo_gemini = None
+
+@st.cache_resource
+def init_gemini():
+    """Inicializa o modelo Gemini com cache"""
+    try:
+        if api_key:
+            genai.configure(api_key=api_key)
+            return genai.GenerativeModel('gemini-2.5-flash')
+        return None
+    except Exception as e:
+        st.error(f"⚠️ Erro ao conectar Gemini: {str(e)}")
+        return None
 
 # ===== CONFIGURAÇÃO DA PÁGINA =====
 st.set_page_config(
@@ -290,6 +297,9 @@ def render_info(text):
 # ═══════════════════════════════════════════════
 
 def main():
+    # Inicializar modelo Gemini
+    modelo_gemini = init_gemini()
+    
     # ── HERO HEADER ──
     st.markdown("""
         <div class="hero">
@@ -372,7 +382,7 @@ def main():
         if user_input:
             st.session_state.historico_chat.append({"role": "user", "content": user_input})
             with st.spinner("🤔 MetaFinance está analisando..."):
-                resposta = gerar_resposta_meta(user_input, perfil, df_transacoes, produtos)
+                resposta = gerar_resposta_meta(user_input, perfil, df_transacoes, produtos, modelo_gemini)
             st.session_state.historico_chat.append({"role": "assistant", "content": resposta})
             st.rerun()
 
@@ -580,7 +590,7 @@ Alertas e previsões com ML
 # FUNÇÕES DE RESPOSTA COM IA
 # ═══════════════════════════════════════════════
 
-def gerar_resposta_meta(pergunta, perfil, df_transacoes, produtos):
+def gerar_resposta_meta(pergunta, perfil, df_transacoes, produtos, modelo_gemini=None):
     if modelo_gemini:
         try:
             prompt = f"""
