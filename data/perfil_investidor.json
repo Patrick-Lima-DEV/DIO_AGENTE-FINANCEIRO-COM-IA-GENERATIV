@@ -1,0 +1,35 @@
+{
+  "cliente_id": "CLI001",
+  "nome": "João da Silva",
+  "idade": 35,
+  "renda_mensal": 5000.00,
+  "profissao": "Analista de Sistemas",
+  "estado_civil": "Casado",
+  "dependentes": 1,
+  "saldo_atual": 15000.00,
+  "patrimonio_total": 45000.00,
+  "perfil_risco": "moderado",
+  "objetivo_principal": "Aposentadoria em 25 anos",
+  "objetivos_secundarios": ["Fundo para educação do filho", "Casa própria em 5 anos"],
+  "experiencia_investimentos": "intermediaria",
+  "investimentos_atuais": {
+    "fundo_renda_fixa": 15000.00,
+    "poupanca": 8000.00,
+    "criptomoedas": 2000.00,
+    "fundos_acoes": 19000.00
+  },
+  "tempo_horizonte": "longo prazo",
+  "tolerancia_volatilidade": "moderada",
+  "limite_credito": 10000.00,
+  "cartoes_ativos": 2,
+  "emprestimos": [
+    {
+      "tipo": "Financiamento Imóvel",
+      "saldo_devedor": 150000.00,
+      "taxa_juros": 7.5,
+      "parcelas_restantes": 240
+    }
+  ],
+  "preferencias_comunicacao": "email,sms,app",
+  "frequencia_interacao": "semanal"
+}

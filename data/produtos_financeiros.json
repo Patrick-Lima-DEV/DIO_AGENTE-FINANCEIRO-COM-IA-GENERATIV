@@ -1,0 +1,80 @@
+{
+  "produtos": [
+    {
+      "id": "PROD001",
+      "nome": "Fundo Conservador ABC",
+      "tipo": "Fundo de Renda Fixa",
+      "rentabilidade_anual": 8.5,
+      "minimo_investimento": 100.00,
+      "taxa_administracao": 0.5,
+      "risco": "baixo",
+      "patrimonio": 50000000.00,
+      "descricao": "Fundo focado em títulos públicos e privados com baixa volatilidade",
+      "publico_alvo": "Iniciantes, conservadores",
+      "perfil_recomendado": ["conservador", "moderado"]
+    },
+    {
+      "id": "PROD002",
+      "nome": "Fundo Dinâmico XYZ",
+      "tipo": "Fundo de Ações",
+      "rentabilidade_anual": 12.3,
+      "minimo_investimento": 500.00,
+      "taxa_administracao": 1.2,
+      "risco": "alto",
+      "patrimonio": 85000000.00,
+      "descricao": "Fundo com exposição a empresas de crescimento e pequenas capitalizações",
+      "publico_alvo": "Investidores com perfil agressivo",
+      "perfil_recomendado": ["agressivo"]
+    },
+    {
+      "id": "PROD003",
+      "nome": "CDB Seguro 120% CDI",
+      "tipo": "Certificado de Depósito Bancário",
+      "rentabilidade_anual": 10.5,
+      "minimo_investimento": 50.00,
+      "risco": "muito baixo",
+      "prazo_minimo": 30,
+      "dias_carencia": 0,
+      "descricao": "Investimento seguro com taxa de 120% do Certificado de Depósito Interbancário",
+      "publico_alvo": "Todos",
+      "perfil_recomendado": ["conservador", "moderado", "agressivo"]
+    },
+    {
+      "id": "PROD004",
+      "nome": "Tesouro Direto",
+      "tipo": "Títulos Públicos",
+      "rentabilidade_anual": 9.2,
+      "minimo_investimento": 30.00,
+      "taxa_custodia": 0.25,
+      "risco": "muito baixo",
+      "descricao": "Títulos de dívida do Governo Brasileiro com garantia de solvência",
+      "publico_alvo": "Todos os investidores",
+      "perfil_recomendado": ["conservador", "moderado"]
+    },
+    {
+      "id": "PROD005",
+      "nome": "Seguro de Vida Universal",
+      "tipo": "Seguro",
+      "cobertura_minima": 50000.00,
+      "premio_mensal": 89.90,
+      "cobertura_maxima": 500000.00,
+      "idade_minima": 18,
+      "idade_maxima": 65,
+      "descricao": "Seguro de vida com investimento e proteção familiar",
+      "publico_alvo": "Pessoas com dependentes",
+      "perfil_recomendado": ["conservador", "moderado", "agressivo"]
+    },
+    {
+      "id": "PROD006",
+      "nome": "Cartão de Crédito Premium",
+      "tipo": "Cartão de Crédito",
+      "limite_minimo": 1000.00,
+      "taxa_anual": 239.90,
+      "cashback": 2.0,
+      "milhas": 1.25,
+      "descricao": "Cartão com pontos, milhas e cashback em compras",
+      "publico_alvo": "Clientes com renda acima de R$ 3000",
+      "beneficios": ["Seguro viagem", "SAC prioritário", "Acesso a lounge"]
+    }
+  ]
+}
