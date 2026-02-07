@@ -486,6 +486,17 @@ def main():
         
         # Gráfico de satisfação
         st.bar_chart(df_historico.groupby('tipo_duvida')['satisfacao'].mean())
+    
+    # ===== RODAPÉ =====
+    st.markdown("---")
+    st.markdown(
+        """
+        <div style="text-align: center; color: #777; font-size: 0.85em; padding: 20px 0;">
+            <p>Desenvolvido por patrick lima, parte do projeto de certificação DIO</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 
 def gerar_resposta_sofia(pergunta, perfil, df_transacoes, produtos):
