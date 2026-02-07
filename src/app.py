@@ -1,9 +1,9 @@
 """
-AGENTE FINANCEIRO INTELIGENTE - Sofia Finance
+AGENTE FINANCEIRO INTELIGENTE - MetaFinance
 Chatbot de Consultoria Financeira com IA Generativa
 
-Autor: DIO Challenge
-Data: 2024
+Autor: Patrick Lima - Certificação DIO
+Data: 2026
 """
 
 import streamlit as st
@@ -12,14 +12,191 @@ import pandas as pd
 import os
 from datetime import datetime
 from pathlib import Path
+from dotenv import load_dotenv
+import google.generativeai as genai
+
+# ===== CONFIGURAÇÃO DE AMBIENTE =====
+load_dotenv()
+api_key = os.getenv("GOOGLE_API_KEY")
+if api_key:
+    genai.configure(api_key=api_key)
+    modelo_gemini = genai.GenerativeModel('gemini-2.5-flash')
+else:
+    modelo_gemini = None
 
 # ===== CONFIGURAÇÃO DA PÁGINA =====
 st.set_page_config(
-    page_title="Sofia Finance - Consultora Financeira IA",
-    page_icon="💰",
+    page_title="MetaFinance - IA Financeira",
+    page_icon="🚀",
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# ===== CSS GLOBAL PREMIUM =====
+st.markdown("""
+<style>
+    /* === RESET === */
+    .block-container { padding-top: 1rem; max-width: 1200px; }
+    header[data-testid="stHeader"] { background: transparent; }
+
+    /* === SIDEBAR DARK === */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+    }
+    [data-testid="stSidebar"] * { color: #e0e0e0 !important; }
+    [data-testid="stSidebar"] hr { border-color: rgba(255,255,255,0.1) !important; }
+    [data-testid="stSidebar"] .stRadio label { transition: all 0.2s; padding: 3px 0; }
+    [data-testid="stSidebar"] .stRadio label:hover { padding-left: 6px; }
+
+    /* === HEADER HERO === */
+    .hero {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 2rem 2.5rem;
+        border-radius: 20px;
+        color: white;
+        margin-bottom: 1.8rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 10px 40px rgba(102,126,234,0.3);
+        position: relative;
+        overflow: hidden;
+    }
+    .hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 300px;
+        height: 300px;
+        background: rgba(255,255,255,0.06);
+        border-radius: 50%;
+    }
+    .hero-left { display: flex; align-items: center; gap: 1.2rem; z-index: 1; }
+    .hero-icon { font-size: 2.8em; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15)); }
+    .hero-title { font-size: 2.2em; font-weight: 800; letter-spacing: -1px; }
+    .hero-sub { font-size: 0.95em; opacity: 0.85; margin-top: 2px; }
+    .hero-badge {
+        background: rgba(255,255,255,0.2);
+        padding: 0.5rem 1.2rem;
+        border-radius: 25px;
+        font-size: 0.85em;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.15);
+        z-index: 1;
+    }
+
+    /* === SIDEBAR PROFILE === */
+    .sb-profile {
+        background: linear-gradient(135deg, rgba(102,126,234,0.25), rgba(118,75,162,0.25));
+        border: 1px solid rgba(255,255,255,0.08);
+        padding: 1.5rem;
+        border-radius: 18px;
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+    .sb-avatar {
+        width: 64px; height: 64px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 0.8rem;
+        font-size: 1.6em;
+        box-shadow: 0 4px 20px rgba(102,126,234,0.5);
+        border: 3px solid rgba(255,255,255,0.15);
+    }
+    .sb-name { font-size: 1.15em; font-weight: 700; color: white !important; }
+    .sb-role { font-size: 0.8em; opacity: 0.65; margin-top: 2px; }
+    .sb-stats { display: flex; justify-content: space-around; margin-top: 1.2rem; gap: 6px; }
+    .sb-stat {
+        text-align: center;
+        padding: 0.6rem 0.4rem;
+        background: rgba(255,255,255,0.06);
+        border-radius: 12px;
+        flex: 1;
+    }
+    .sb-stat-val { font-size: 0.82em; font-weight: 700; color: #a78bfa !important; }
+    .sb-stat-lbl { font-size: 0.68em; opacity: 0.6; margin-top: 3px; }
+
+    /* === METRIC CARDS === */
+    .m-card {
+        background: white;
+        border-radius: 18px;
+        padding: 1.4rem;
+        text-align: center;
+        box-shadow: 0 2px 16px rgba(0,0,0,0.05);
+        border: 1px solid #f0f0f5;
+        transition: all 0.25s ease;
+    }
+    .m-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
+    .m-icon { font-size: 2em; margin-bottom: 0.4rem; }
+    .m-label { font-size: 0.82em; color: #999; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+    .m-value { font-size: 1.5em; font-weight: 800; margin: 0.25rem 0; }
+
+    /* === INFO BOX === */
+    .info-box {
+        background: linear-gradient(135deg, rgba(102,126,234,0.07), rgba(118,75,162,0.07));
+        border-left: 4px solid #667eea;
+        padding: 1.2rem 1.5rem;
+        border-radius: 0 14px 14px 0;
+        margin-bottom: 1.5rem;
+        font-size: 0.95em;
+        line-height: 1.7;
+    }
+
+    /* === PRODUCT CARD === */
+    .p-card {
+        background: white;
+        border-radius: 18px;
+        padding: 1.6rem;
+        box-shadow: 0 2px 16px rgba(0,0,0,0.05);
+        border: 1px solid #f0f0f5;
+        margin-bottom: 1rem;
+        transition: all 0.25s ease;
+    }
+    .p-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
+    .p-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; }
+    .p-name { font-size: 1.15em; font-weight: 700; color: #333; }
+    .p-badge { padding: 0.3rem 0.9rem; border-radius: 20px; font-size: 0.78em; font-weight: 600; }
+    .bg-green { background: #dcfce7; color: #166534; }
+    .bg-yellow { background: #fef9c3; color: #854d0e; }
+    .bg-red { background: #fee2e2; color: #991b1b; }
+    .p-meta { margin-bottom: 1rem; font-size: 0.88em; color: #999; }
+    .p-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; }
+    .p-stat { text-align: center; padding: 0.8rem 0.4rem; background: #f8f9fc; border-radius: 12px; }
+    .p-stat-val { font-size: 1.05em; font-weight: 700; color: #667eea; }
+    .p-stat-lbl { font-size: 0.72em; color: #999; margin-top: 3px; }
+
+    /* === SECTION TITLE === */
+    .sec-title {
+        font-size: 1.25em;
+        font-weight: 700;
+        color: #333;
+        margin: 1.5rem 0 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #f0f0f5;
+    }
+
+    /* === DIVIDER === */
+    .divider { height: 1px; background: linear-gradient(90deg, transparent, #e5e5ea, transparent); margin: 2rem 0; }
+
+    /* === FOOTER === */
+    .footer {
+        text-align: center;
+        padding: 2rem 0 1rem;
+        color: #bbb;
+        font-size: 0.85em;
+        border-top: 1px solid #f0f0f5;
+        margin-top: 3rem;
+    }
+    .footer a { color: #667eea; text-decoration: none; font-weight: 600; }
+    .footer a:hover { text-decoration: underline; }
+
+    /* === CHAT === */
+    .stChatMessage { border-radius: 14px !important; margin-bottom: 0.5rem !important; }
+</style>
+""", unsafe_allow_html=True)
+
 
 # ===== IMPORTAR DADOS =====
 
@@ -27,93 +204,58 @@ st.set_page_config(
 def carregar_dados():
     """Carrega dados de configuração do agente"""
     data_dir = Path(__file__).parent.parent / "data"
-    
     try:
-        # Carregar transações
         df_transacoes = pd.read_csv(data_dir / "transacoes.csv")
-        
-        # Carregar perfil do investidor
         with open(data_dir / "perfil_investidor.json", "r", encoding="utf-8") as f:
             perfil = json.load(f)
-        
-        # Carregar histórico de atendimento
         df_historico = pd.read_csv(data_dir / "historico_atendimento.csv")
-        
-        # Carregar produtos
         with open(data_dir / "produtos_financeiros.json", "r", encoding="utf-8") as f:
             produtos = json.load(f)
-        
         return df_transacoes, perfil, df_historico, produtos
     except FileNotFoundError as e:
         st.error(f"❌ Erro ao carregar dados: {e}")
         return None, None, None, None
 
 
-# ===== FUNÇÕES DE ANÁLISE FINANCEIRA =====
+# ===== FUNÇÕES DE ANÁLISE =====
 
 def analisar_gastos(df_transacoes):
-    """Analisa padrão de gastos do cliente"""
     df_debito = df_transacoes[df_transacoes['tipo'] == 'debito'].copy()
-    
-    analise = {
+    return {
         "gastos_totais": df_debito['valor'].sum(),
         "gasto_medio": df_debito['valor'].mean(),
         "gasto_minimo": df_debito['valor'].min(),
         "gasto_maximo": df_debito['valor'].max(),
         "por_categoria": df_debito.groupby('categoria')['valor'].sum().to_dict()
     }
-    
-    return analise
-
 
 def simular_retorno(valor_inicial, taxa_anual, anos):
-    """Simula retorno de investimento"""
-    valor_futuro = valor_inicial * ((1 + taxa_anual/100) ** anos)
+    valor_futuro = valor_inicial * ((1 + taxa_anual / 100) ** anos)
     ganho = valor_futuro - valor_inicial
-    
     return {
         "valor_futuro": round(valor_futuro, 2),
         "ganho": round(ganho, 2),
-        "taxa_efetiva": round((ganho / valor_inicial) * 100, 2) if valor_inicial > 0 else 0
+        "taxa_efetiva": round((ganho / valor_inicial) * 100, 2) if valor_inicial > 0 else 0,
     }
 
-
 def calcular_tempo_meta(valor_atual, meta, economia_mensal, taxa_anual):
-    """Calcula tempo para atingir meta financeira"""
-    meses = 0
-    saldo = valor_atual
-    
-    while saldo < meta and meses < 600:  # Max 50 anos
+    meses, saldo = 0, valor_atual
+    while saldo < meta and meses < 600:
         saldo += economia_mensal
         saldo += saldo * (taxa_anual / 100 / 12)
         meses += 1
-    
-    return {
-        "meses": meses,
-        "anos": round(meses / 12, 1),
-        "alcancavel": saldo >= meta
-    }
-
+    return {"meses": meses, "anos": round(meses / 12, 1), "alcancavel": saldo >= meta}
 
 def recomendar_produtos(perfil, produtos_lista):
-    """Recomenda produtos baseado no perfil do cliente"""
     recomendacoes = []
-    
     for produto in produtos_lista["produtos"]:
-        # Validar compatibilidade
         if perfil["perfil_risco"] in produto.get("perfil_recomendado", []):
             compatibilidade = 5
-        elif perfil["perfil_risco"] == "moderado" and "moderado" in produto.get("perfil_recomendado", []):
+        elif perfil["perfil_risco"] == "moderado":
             compatibilidade = 4
         else:
             compatibilidade = 2
-        
-        # Validar saldo
-        if perfil["saldo_atual"] >= produto.get("minimo_investimento", 0):
-            elegibilidade = "Elegível"
-        else:
-            elegibilidade = "Saldo insuficiente"
-        
+        elegibilidade = "Elegível" if perfil["saldo_atual"] >= produto.get("minimo_investimento", 0) else "Saldo insuficiente"
         recomendacoes.append({
             "nome": produto["nome"],
             "tipo": produto["tipo"],
@@ -122,574 +264,460 @@ def recomendar_produtos(perfil, produtos_lista):
             "rentabilidade": produto.get("rentabilidade_anual", 0),
             "risco": produto.get("risco", "desconhecido"),
             "minimo": produto.get("minimo_investimento", 0),
-            "taxa_admin": produto.get("taxa_administracao", 0)
+            "taxa_admin": produto.get("taxa_administracao", 0),
         })
-    
-    # Ordenar por compatibilidade
     recomendacoes.sort(key=lambda x: x["compatibilidade"], reverse=True)
     return recomendacoes
 
 
-# ===== INTERFACE STREAMLIT =====
+# ===== COMPONENTES =====
+
+def render_metric(col, icon, label, value, color):
+    col.markdown(
+        f'<div class="m-card"><div class="m-icon">{icon}</div><div class="m-label">{label}</div><div class="m-value" style="color:{color};">{value}</div></div>',
+        unsafe_allow_html=True,
+    )
+
+def render_divider():
+    st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+
+def render_info(text):
+    st.markdown(f'<div class="info-box">{text}</div>', unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════════════════
+# INTERFACE PRINCIPAL
+# ═══════════════════════════════════════════════
 
 def main():
-    # Header
-    col1, col2 = st.columns([0.8, 0.2])
-    with col1:
-        st.title("💰 Sofia Finance")
-        st.markdown("*Consultora Financeira Inteligente com IA*")
-    
-    with col2:
-        st.image("", use_column_width=True) if os.path.exists("assets/logo.png") else None
-    
-    st.markdown("---")
-    
+    # ── HERO HEADER ──
+    st.markdown("""
+        <div class="hero">
+            <div class="hero-left">
+                <div class="hero-icon">🚀</div>
+                <div>
+                    <div class="hero-title">MetaFinance</div>
+                    <div class="hero-sub">Seu Consultor Financeiro com IA Generativa</div>
+                </div>
+            </div>
+            <div class="hero-badge">✨ Powered by Gemini AI</div>
+        </div>
+    """, unsafe_allow_html=True)
+
     # Carregar dados
     df_transacoes, perfil, df_historico, produtos = carregar_dados()
-    
     if df_transacoes is None:
         st.error("⚠️ Não foi possível carregar os dados. Verifique a pasta `/data`.")
         return
-    
-    # Sidebar com menu
-    st.sidebar.title("🧭 Menu")
+
+    # ── SIDEBAR ──
+    nome = perfil["nome"]
+    renda_fmt = f"R$ {perfil['renda_mensal']:,.0f}"
+    saldo_fmt = f"R$ {perfil['saldo_atual']:,.0f}"
+    risco = perfil["perfil_risco"].capitalize()
+
+    st.sidebar.markdown(f"""
+        <div class="sb-profile">
+            <div class="sb-avatar">👤</div>
+            <div class="sb-name">{nome}</div>
+            <div class="sb-role">Perfil {risco}</div>
+            <div class="sb-stats">
+                <div class="sb-stat">
+                    <div class="sb-stat-val">{renda_fmt}</div>
+                    <div class="sb-stat-lbl">Renda</div>
+                </div>
+                <div class="sb-stat">
+                    <div class="sb-stat-val">{saldo_fmt}</div>
+                    <div class="sb-stat-lbl">Saldo</div>
+                </div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
     pagina = st.sidebar.radio(
-        "Escolha uma opção:",
-        [
-            "💬 Chat com Sofia",
-            "📊 Análise de Gastos",
-            "🎯 Simulador de Investimentos",
-            "📈 Recomendações Personalizadas",
-            "ℹ️ Sobre Sofia",
-            "💬 histórico"
-        ]
+        "🧭 Navegação",
+        ["💬 Chat IA", "📊 Gastos", "🎯 Simulador", "📈 Recomendações", "ℹ️ Sobre", "📜 Histórico"],
+        label_visibility="collapsed",
     )
-    
-    # ===== PÁGINA 1: CHAT COM SOFIA =====
-    if pagina == "💬 Chat com Sofia":
-        st.header("Chat com Sofia Finance")
-        st.markdown("""
-        Olá! Sou Sofia, sua consultora financeira digital. 
-        Posso ajudar com:
-        - 💡 Recomendações de investimento
-        - 📊 Análise de gastos e economia
-        - 🧮 Cálculos e simulações  
-        - 📚 Educação financeira
-        """)
-        
-        st.markdown("---")
-        
-        # Inicializar histórico de chat
+
+    st.sidebar.markdown("---")
+    if modelo_gemini:
+        st.sidebar.success("🟢 IA Gemini ativa")
+    else:
+        st.sidebar.warning("🟡 IA offline — respostas padrão")
+
+    # ═══════════════════════════════════════
+    # PÁGINA: CHAT IA
+    # ═══════════════════════════════════════
+    if pagina == "💬 Chat IA":
+        st.markdown('<div class="sec-title">💬 Chat com MetaFinance</div>', unsafe_allow_html=True)
+
+        render_info(
+            "Olá! Sou a <b>Meta</b>, sua consultora com IA. Pergunte sobre "
+            "<b>investimentos</b>, <b>economia</b>, <b>produtos financeiros</b> "
+            "ou peça <b>dicas educativas</b>. 🚀"
+        )
+
         if "historico_chat" not in st.session_state:
             st.session_state.historico_chat = [
-                {
-                    "role": "assistant",
-                    "content": "👋 Sou a Sofia Finance. Como posso ajudá-lo hoje?"
-                }
+                {"role": "assistant", "content": "👋 Olá! Sou a **MetaFinance**, sua consultora financeira com IA. Como posso ajudá-lo hoje?"}
             ]
-        
-        # Exibir histórico
+
         for msg in st.session_state.historico_chat:
-            with st.chat_message(msg["role"]):
-                st.write(msg["content"])
-        
-        # Input do usuário
-        user_input = st.chat_input("Digite sua pergunta aqui...")
-        
+            avatar = "🤖" if msg["role"] == "assistant" else "👤"
+            with st.chat_message(msg["role"], avatar=avatar):
+                st.markdown(msg["content"])
+
+        user_input = st.chat_input("Pergunte algo sobre finanças...")
         if user_input:
-            # Adicionar msg do usuário
-            st.session_state.historico_chat.append({
-                "role": "user",
-                "content": user_input
-            })
-            
-            # Gerar resposta (resposta inteligente baseada em padrões)
-            resposta = gerar_resposta_sofia(
-                user_input, 
-                perfil, 
-                df_transacoes, 
-                produtos
-            )
-            
-            st.session_state.historico_chat.append({
-                "role": "assistant",
-                "content": resposta
-            })
-            
+            st.session_state.historico_chat.append({"role": "user", "content": user_input})
+            with st.spinner("🤔 MetaFinance está analisando..."):
+                resposta = gerar_resposta_meta(user_input, perfil, df_transacoes, produtos)
+            st.session_state.historico_chat.append({"role": "assistant", "content": resposta})
             st.rerun()
-    
-    # ===== PÁGINA 2: ANÁLISE DE GASTOS =====
-    elif pagina == "📊 Análise de Gastos":
-        st.header("📊 Análise de Gastos e Receitas")
-        
+
+    # ═══════════════════════════════════════
+    # PÁGINA: GASTOS
+    # ═══════════════════════════════════════
+    elif pagina == "📊 Gastos":
+        st.markdown('<div class="sec-title">📊 Análise de Gastos e Receitas</div>', unsafe_allow_html=True)
+
         analise = analisar_gastos(df_transacoes)
-        receita_total = df_transacoes[df_transacoes['tipo'] == 'credito']['valor'].sum()
-        
-        # Cards com métricas principais
+        receita_total = df_transacoes[df_transacoes["tipo"] == "credito"]["valor"].sum()
+        taxa_poupanca = ((receita_total - analise["gastos_totais"]) / receita_total * 100) if receita_total > 0 else 0
+
         col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.metric("💵 Renda Total", f"R$ {receita_total:,.2f}")
-        
-        with col2:
-            st.metric("💸 Gastos Totais", f"R$ {analise['gastos_totais']:,.2f}")
-        
-        with col3:
-            taxa_poupanca = ((receita_total - analise['gastos_totais']) / receita_total * 100) if receita_total > 0 else 0
-            st.metric("📈 Taxa de Poupança", f"{taxa_poupanca:.1f}%")
-        
-        with col4:
-            st.metric("💰 Saldo Atual", f"R$ {perfil['saldo_atual']:,.2f}")
-        
-        st.markdown("---")
-        
-        # Gráficos
-        st.subheader("Gastos por Categoria")
-        
-        df_categorias = pd.DataFrame(
-            list(analise['por_categoria'].items()),
-            columns=['Categoria', 'Valor']
-        ).sort_values('Valor', ascending=False)
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.bar_chart(df_categorias.set_index('Categoria'))
-        
-        with col2:
-            st.pie_chart(df_categorias.set_index('Categoria'))
-        
-        st.markdown("---")
-        
-        # Tabela detalhada
-        st.subheader("Extrato Detalhado (Últimas 15 transações)")
-        st.dataframe(
-            df_transacoes.iloc[::-1],
-            use_container_width=True,
-            hide_index=True
-        )
-        
-        # Recomendação automática
-        st.markdown("---")
-        st.subheader("💡 Recomendação Automática")
-        
-        maior_categoria = max(analise['por_categoria'], key=analise['por_categoria'].get)
-        maior_valor = analise['por_categoria'][maior_categoria]
-        
-        if maior_valor > perfil['renda_mensal'] * 0.3:
-            st.info(
-                f"⚠️ Você está gastando {(maior_valor/perfil['renda_mensal']*100):.1f}% "
-                f"da renda em {maior_categoria.lower()}. "
-                f"Considere revisar esses gastos!"
-            )
+        render_metric(col1, "💵", "Renda Total", f"R$ {receita_total:,.0f}", "#10b981")
+        render_metric(col2, "💸", "Gastos Totais", f"R$ {analise['gastos_totais']:,.0f}", "#ef4444")
+        render_metric(col3, "📈", "Tx. Poupança", f"{taxa_poupanca:.1f}%", "#f59e0b")
+        render_metric(col4, "💰", "Saldo", f"R$ {perfil['saldo_atual']:,.0f}", "#667eea")
+
+        render_divider()
+
+        df_cat = pd.DataFrame(list(analise["por_categoria"].items()), columns=["Categoria", "Valor"]).sort_values("Valor", ascending=False)
+
+        col_l, col_r = st.columns(2)
+        with col_l:
+            st.markdown('<div class="sec-title">📊 Gastos por Categoria</div>', unsafe_allow_html=True)
+            st.bar_chart(df_cat.set_index("Categoria"), color="#667eea")
+        with col_r:
+            st.markdown('<div class="sec-title">🥧 Distribuição</div>', unsafe_allow_html=True)
+            df_view = df_cat.copy()
+            df_view["% do Total"] = (df_view["Valor"] / df_view["Valor"].sum() * 100).round(1).astype(str) + "%"
+            df_view["Valor"] = df_view["Valor"].apply(lambda x: f"R$ {x:,.0f}")
+            st.dataframe(df_view, use_container_width=True, hide_index=True)
+
+        render_divider()
+
+        st.markdown('<div class="sec-title">📋 Extrato Recente</div>', unsafe_allow_html=True)
+        st.dataframe(df_transacoes.iloc[::-1].head(15), use_container_width=True, hide_index=True)
+
+        render_divider()
+
+        maior_cat = max(analise["por_categoria"], key=analise["por_categoria"].get)
+        maior_val = analise["por_categoria"][maior_cat]
+        if maior_val > perfil["renda_mensal"] * 0.3:
+            st.warning(f"⚠️ Gastos em **{maior_cat.lower()}** = **{(maior_val/perfil['renda_mensal']*100):.0f}%** da renda. Considere revisar!")
         else:
-            st.success(
-                "✅ Seus gastos parecem bem distribuídos! "
-                "Você tem potencial para investir e fazer seu patrimônio crescer."
-            )
-    
-    # ===== PÁGINA 3: SIMULADOR =====
-    elif pagina == "🎯 Simulador de Investimentos":
-        st.header("🎯 Simulador de Investimentos")
-        
-        st.markdown("Use este simulador para ver como seu dinheiro pode crescer!")
-        
+            st.success("✅ Gastos bem distribuídos. Ótimo potencial para investir!")
+
+    # ═══════════════════════════════════════
+    # PÁGINA: SIMULADOR
+    # ═══════════════════════════════════════
+    elif pagina == "🎯 Simulador":
+        st.markdown('<div class="sec-title">🎯 Simulador de Investimentos</div>', unsafe_allow_html=True)
+        render_info("Descubra como seu dinheiro pode crescer! Ajuste os parâmetros e veja a projeção em tempo real.")
+
         col1, col2, col3 = st.columns(3)
-        
         with col1:
-            valor_inv = st.number_input(
-                "Valor Inicial (R$)",
-                min_value=0.0,
-                value=float(perfil['saldo_atual']),
-                step=500.0
-            )
-        
+            valor_inv = st.number_input("💰 Valor Inicial (R$)", min_value=0.0, value=1000.0, step=500.0)
         with col2:
-            taxa = st.number_input(
-                "Taxa Anual (%)",
-                min_value=0.0,
-                max_value=50.0,
-                value=8.5,
-                step=0.5
-            )
-        
+            taxa = st.number_input("📈 Taxa Anual (%)", min_value=0.0, max_value=50.0, value=10.0, step=0.5)
         with col3:
-            anos = st.number_input(
-                "Período (Anos)",
-                min_value=1,
-                max_value=50,
-                value=5,
-                step=1
-            )
-        
-        if st.button("▶️ Calcular", use_container_width=True):
+            anos = st.number_input("📅 Período (Anos)", min_value=1, max_value=50, value=5, step=1)
+
+        if st.button("🚀 Calcular Projeção", use_container_width=True, type="primary"):
             resultado = simular_retorno(valor_inv, taxa, anos)
-            
+
             col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                st.metric(
-                    "Valor Futuro",
-                    f"R$ {resultado['valor_futuro']:,.2f}"
-                )
-            
-            with col2:
-                st.metric(
-                    "Ganho Esperado",
-                    f"R$ {resultado['ganho']:,.2f}",
-                    delta=f"{resultado['taxa_efetiva']:.2f}%"
-                )
-            
-            with col3:
-                st.metric(
-                    "Taxa Equivalente",
-                    f"{resultado['taxa_efetiva']:.2f}%"
-                )
-            
-            st.markdown("---")
-            
-            # Gráfico de crescimento ao longo do tempo
-            ano_list = list(range(1, anos + 1))
-            valor_list = [
-                valor_inv * ((1 + taxa/100) ** ano) for ano in ano_list
-            ]
-            
-            df_crescimento = pd.DataFrame({
-                'Ano': ano_list,
-                'Saldo': valor_list
-            })
-            
-            st.line_chart(df_crescimento.set_index('Ano'))
-    
-    # ===== PÁGINA 4: RECOMENDAÇÕES =====
-    elif pagina == "📈 Recomendações Personalizadas":
-        st.header("📈 Recomendações Personalizadas")
-        
-        st.markdown(f"""
-        **Seu Perfil financeiro:**
-        - Renda Mensal: R$ {perfil['renda_mensal']:,.2f}
-        - Saldo Atual: R$ {perfil['saldo_atual']:,.2f}
-        - Perfil de Risco: {perfil['perfil_risco'].upper()}
-        - Objetivo: {perfil['objetivo_principal']}
-        - Horizonte: {perfil['tempo_horizonte']}
-        """)
-        
-        st.markdown("---")
-        
-        # Obter recomendações
-        recomendacoes = recomendar_produtos(perfil, produtos)
-        
-        # Filtrar por elegibilidade
-        elegíveis = [r for r in recomendacoes if r['elegibilidade'] == 'Elegível']
-        
-        st.subheader(f"✅ Produtos Recomendados ({len(elegíveis)})")
-        
-        for i, rec in enumerate(elegíveis[:3], 1):
-            with st.expander(f"**{i}. {rec['nome']}** - ⭐ Compatibilidade: {rec['compatibilidade']}/5"):
-                col1, col2, col3 = st.columns(3)
-                
-                with col1:
-                    st.metric("Tipo", rec['tipo'])
-                    st.metric("Risco", rec['risco'].upper())
-                
-                with col2:
-                    st.metric("Rentabilidade", f"{rec['rentabilidade']:.1f}%/ano")
-                    st.metric("Taxa Admin", f"{rec['taxa_admin']:.2f}%")
-                
-                with col3:
-                    st.metric("Mínimo", f"R$ {rec['minimo']:.2f}")
-                    st.metric("Status", rec['elegibilidade'])
-                
-                # Mini simulação
-                st.markdown("---")
-                st.markdown("**Simulação Rápida:**")
-                resultado = simular_retorno(5000, rec['rentabilidade'], 1)
-                st.write(f"Se investir R$ 5.000, em 1 ano teria: **R$ {resultado['valor_futuro']:,.2f}** (ganho de **R$ {resultado['ganho']:,.2f}**)")
-        
-        if not elegíveis:
-            st.warning("⚠️ Nenhum produto elegível no momento. Acumule mais saldo para começar a investir!")
-    
-    # ===== PÁGINA 5: SOBRE =====
-    elif pagina == "ℹ️ Sobre Sofia":
-        st.header("ℹ️ Sobre a Sofia Finance")
-        
-        st.markdown("""
-        ## Quem sou?
-        
-        Sou **Sofia Finance**, uma consultora financeira digital inteligente, criada para ajudar você a:
-        
-        ✅ **Entender** suas finanças pessoais  
-        ✅ **Otimizar** seus gastos e economias  
-        ✅ **Investir** de forma segura e inteligente  
-        ✅ **Construir** patrimônio ao longo do tempo  
-        
-        ## Meus Diferenciais
-        
-        🤖 **IA Generativa** - Conversas naturais e personalizadas  
-        📊 **Dados Reais** - Baseada em seu perfil e transações reais  
-        🎯 **Recomendações Seguras** - Sem alucinações, sem garantias falsas  
-        📚 **Educadora** - Explico cada conceito de forma clara  
-        🛡️ **Segura** - Suas informações estão protegidas  
-        
-        ## Como Funciono?
-        
-        1. **Coleto seu contexto** - Seu perfil, renda, objetivos, gastos
-        2. **Analiso padrões** - Onde você gasta mais, quanto economiza
-        3. **Recomendo produtos** - CDB, Fundo, Tesouro, alinhados com seu perfil
-        4. **Faço simulações** - Mostro quanto cada investimento renderá
-        5. **Educo** - Explico o "por quê" de cada recomendação
-        
-        ## Roadmap Futuro
-        
-        🟦 **V1** (Atual) - Chat + Análise de Gastos + Simulações  
-        🟩 **V2** (Próxima) - Integração com APIs bancárias reais  
-        🟥 **V3** (Futura) - Alertas automáticos, previsões de mercado  
-        
-        ## Contato / Feedback
-        
-        Tem sugestões? Detectou algum erro? Quer dar feedback?  
-        Entre em contato conosco: **[seu-email@exemplo.com]**
-        
-        ---
-        
-        **Última atualização**: {datetime.now().strftime("%d/%m/%Y %H:%M")}
-        """)
-    
-    # ===== PÁGINA 6: HISTÓRICO =====
-    elif pagina == "💬 histórico":
-        st.header("📜 Histórico de Atendimentos")
-        
-        st.markdown("Veja como clientes foram atendidos pela Sofia no passado:")
-        
-        st.dataframe(
-            df_historico,
-            use_container_width=True,
-            hide_index=True
+            render_metric(col1, "🏦", "Valor Futuro", f"R$ {resultado['valor_futuro']:,.2f}", "#10b981")
+            render_metric(col2, "📈", "Ganho Total", f"R$ {resultado['ganho']:,.2f}", "#667eea")
+            render_metric(col3, "⚡", "Rendimento", f"{resultado['taxa_efetiva']:.1f}%", "#f59e0b")
+
+            render_divider()
+
+            st.markdown('<div class="sec-title">📈 Projeção de Crescimento</div>', unsafe_allow_html=True)
+            ano_list = list(range(0, anos + 1))
+            valor_list = [valor_inv * ((1 + taxa / 100) ** a) for a in ano_list]
+            df_chart = pd.DataFrame({"Ano": ano_list, "Patrimônio (R$)": valor_list})
+            st.area_chart(df_chart.set_index("Ano"), color="#667eea")
+
+    # ═══════════════════════════════════════
+    # PÁGINA: RECOMENDAÇÕES
+    # ═══════════════════════════════════════
+    elif pagina == "📈 Recomendações":
+        st.markdown('<div class="sec-title">📈 Recomendações Personalizadas</div>', unsafe_allow_html=True)
+
+        render_info(
+            f"Produtos selecionados para seu perfil <b>{perfil['perfil_risco'].upper()}</b> "
+            f"com objetivo de <b>{perfil['objetivo_principal']}</b>."
         )
-        
-        # Estatísticas
-        st.markdown("---")
-        st.subheader("📊 Estatísticas")
-        
-        col1, col2, col3 = st.columns(3)
-        
+
+        recomendacoes = recomendar_produtos(perfil, produtos)
+        elegiveis = [r for r in recomendacoes if r["elegibilidade"] == "Elegível"]
+
+        if elegiveis:
+            for rec in elegiveis[:5]:
+                badge_cls = "bg-green" if rec["risco"] == "baixo" else ("bg-yellow" if rec["risco"] == "medio" else "bg-red")
+                stars = "⭐" * rec["compatibilidade"]
+
+                st.markdown(f"""
+                    <div class="p-card">
+                        <div class="p-head">
+                            <div class="p-name">{rec['nome']}</div>
+                            <div class="p-badge {badge_cls}">Risco {rec['risco'].upper()}</div>
+                        </div>
+                        <div class="p-meta">{rec['tipo']} &bull; Compatibilidade: {stars}</div>
+                        <div class="p-grid">
+                            <div class="p-stat">
+                                <div class="p-stat-val">{rec['rentabilidade']:.1f}%</div>
+                                <div class="p-stat-lbl">Rent. Anual</div>
+                            </div>
+                            <div class="p-stat">
+                                <div class="p-stat-val">R$ {rec['minimo']:,.0f}</div>
+                                <div class="p-stat-lbl">Mín. Investimento</div>
+                            </div>
+                            <div class="p-stat">
+                                <div class="p-stat-val">{rec['taxa_admin']:.2f}%</div>
+                                <div class="p-stat-lbl">Taxa Admin</div>
+                            </div>
+                            <div class="p-stat">
+                                <div class="p-stat-val">✅</div>
+                                <div class="p-stat-lbl">{rec['elegibilidade']}</div>
+                            </div>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.warning("⚠️ Nenhum produto elegível no momento. Acumule mais saldo para começar!")
+
+    # ═══════════════════════════════════════
+    # PÁGINA: SOBRE
+    # ═══════════════════════════════════════
+    elif pagina == "ℹ️ Sobre":
+        st.markdown('<div class="sec-title">ℹ️ Sobre a MetaFinance</div>', unsafe_allow_html=True)
+
+        col1, col2 = st.columns([2, 1])
         with col1:
-            st.metric("Total de Atendimentos", len(df_historico))
-        
+            st.markdown("""
+**MetaFinance** é um agente financeiro inteligente que usa **IA Generativa (Gemini)**
+para oferecer consultoria financeira personalizada e acessível.
+
+### 🧩 Funcionalidades
+- 🤖 **Chat inteligente** com respostas de IA generativa
+- 📊 **Análise de gastos** com insights automáticos
+- 🎯 **Simulações** de investimento em tempo real
+- 📈 **Recomendações** de produtos financeiros por perfil
+- 📚 **Educação financeira** gratuita e acessível
+
+### 🛠 Stack Tecnológica
+| Tecnologia | Uso |
+|---|---|
+| **Streamlit** | Interface web interativa |
+| **Google Gemini AI** | IA generativa |
+| **Python + Pandas** | Análise de dados |
+| **python-dotenv** | Gerenciamento seguro de chaves |
+            """)
         with col2:
-            satisfacao_media = df_historico['satisfacao'].mean()
-            st.metric("Satisfação Média", f"{satisfacao_media:.1f}/5")
-        
-        with col3:
-            dúvida_top = df_historico['tipo_duvida'].value_counts().index[0]
-            st.metric("Dúvida Mais Comum", dúvida_top)
-        
-        # Gráfico de satisfação
-        st.bar_chart(df_historico.groupby('tipo_duvida')['satisfacao'].mean())
-    
-    # ===== RODAPÉ =====
-    st.markdown("---")
-    st.markdown(
-        """
-        <div style="text-align: center; color: #777; font-size: 0.85em; padding: 20px 0;">
-            <p>Desenvolvido por Patrick Lima, parte do projeto de certificação DIO</p>
+            st.markdown("""
+### 🗺️ Roadmap
+
+🟦 **V1** (Atual)
+Chat + Análise + Simulações
+
+🟩 **V2** (Próxima)
+APIs bancárias reais
+
+🟥 **V3** (Futura)
+Alertas e previsões com ML
+            """)
+
+    # ═══════════════════════════════════════
+    # PÁGINA: HISTÓRICO
+    # ═══════════════════════════════════════
+    elif pagina == "📜 Histórico":
+        st.markdown('<div class="sec-title">📜 Histórico de Atendimentos</div>', unsafe_allow_html=True)
+        render_info("Registros de atendimentos anteriores realizados pela MetaFinance.")
+
+        col1, col2, col3 = st.columns(3)
+        render_metric(col1, "📋", "Total", str(len(df_historico)), "#667eea")
+        render_metric(col2, "⭐", "Satisfação", f"{df_historico['satisfacao'].mean():.1f}/5", "#f59e0b")
+        top_d = df_historico["tipo_duvida"].value_counts().index[0]
+        render_metric(col3, "❓", "Dúvida Top", top_d, "#10b981")
+
+        render_divider()
+
+        st.dataframe(df_historico, use_container_width=True, hide_index=True)
+
+        render_divider()
+
+        st.markdown('<div class="sec-title">📊 Satisfação por Tipo</div>', unsafe_allow_html=True)
+        st.bar_chart(df_historico.groupby("tipo_duvida")["satisfacao"].mean(), color="#667eea")
+
+    # ═══════════════════════════════════════
+    # RODAPÉ
+    # ═══════════════════════════════════════
+    st.markdown("""
+        <div class="footer">
+            Projeto desenvolvido por <b>Patrick Lima</b>, como parte da certificação
+            <a href="https://www.dio.me/" target="_blank">DIO (Digital Innovation One)</a><br>
+            <span style="opacity: 0.5;">MetaFinance v1.0 &bull; 2026</span>
         </div>
-        """,
-        unsafe_allow_html=True
-    )
+    """, unsafe_allow_html=True)
 
 
-def gerar_resposta_sofia(pergunta, perfil, df_transacoes, produtos):
-    """
-    Gera resposta inteligente baseada na pergunta e contexto
-    
-    Estratégia:
-    - Detectar padrões na pergunta
-    - Usar conhecimento do perfil e transações
-    - Fornecer resposta contextualizada
-    """
+# ═══════════════════════════════════════════════
+# FUNÇÕES DE RESPOSTA COM IA
+# ═══════════════════════════════════════════════
+
+def gerar_resposta_meta(pergunta, perfil, df_transacoes, produtos):
+    if modelo_gemini:
+        try:
+            prompt = f"""
+            Você é MetaFinance, uma consultora financeira digital especializada em finanças pessoais brasileiras.
+
+            PERFIL DO CLIENTE:
+            - Perfil de Risco: {perfil['perfil_risco']}
+            - Objetivo Principal: {perfil['objetivo_principal']}
+            - Horizonte de Investimento: {perfil['tempo_horizonte']}
+
+            PERGUNTA DO CLIENTE: {pergunta}
+
+            INSTRUÇÕES:
+            1. Responda de forma conversacional, educativa e amigável
+            2. NÃO mencione valores específicos de renda, saldo ou gastos do cliente
+            3. Fale de forma genérica sobre estratégias financeiras adequadas ao perfil
+            4. Se a pergunta for sobre investimentos, explique produtos como CDB, Fundos, Tesouro Direto
+            5. Dê dicas práticas e acessíveis para qualquer pessoa
+            6. Mantenha a resposta concisa (máximo 250 palavras)
+            7. Use emojis quando apropriado
+            8. Sempre incentive educação financeira
+            """
+            response = modelo_gemini.generate_content(prompt)
+            return response.text
+        except Exception as e:
+            st.warning(f"⚠️ Erro na IA: {str(e)}. Usando resposta padrão...")
+            return gerar_resposta_padrao(pergunta, perfil, df_transacoes, produtos)
+    return gerar_resposta_padrao(pergunta, perfil, df_transacoes, produtos)
+
+
+def gerar_resposta_padrao(pergunta, perfil, df_transacoes, produtos):
     pergunta_lower = pergunta.lower()
-    
-    # ===== INTENÇÕES DETECTADAS =====
-    
-    # 1. PERGUNTA SOBRE INVESTIMENTOS
-    if any(word in pergunta_lower for word in ["investir", "investimento", "rendimento", "retorno"]):
-        analise = analisar_gastos(df_transacoes)
-        economia_mensal = perfil['renda_mensal'] - analise['gastos_totais'] / len(df_transacoes)
-        
+
+    if any(w in pergunta_lower for w in ["investir", "investimento", "rendimento", "retorno"]):
         return f"""
-Ótima pergunta! {perfil['nome']}, vejo que sua situação é:
+Ótima pergunta! Vou te ajudar com investimentos! 🚀
 
-📊 **SUA SITUAÇÃO**:
-- Renda Mensal: R$ {perfil['renda_mensal']:,.2f}
-- Gastos Totais: R$ {analise['gastos_totais']:,.2f}
-- Saldo Atual: R$ {perfil['saldo_atual']:,.2f}
-- Economia Mensal: ~R$ {economia_mensal:,.2f}
+💡 **RECOMENDAÇÕES PARA PERFIL {perfil['perfil_risco'].upper()}**:
 
-💡 **RECOMENDAÇÃO**:
-Para seu perfil **{perfil['perfil_risco'].upper()}**, sugiro:
-1. **CDB** - Seguro, rendimento de 10.5% ao ano
-2. **Fundo Conservador** - Diversificação, 8.5% ao ano
-3. **Tesouro Direto** - Muito seguro, 9.2% ao ano
+1. **CDB** — Seguro (FGC até R$ 250 mil) • ~10.5% ao ano
+2. **Tesouro Direto** — Garantia do governo • ~9.2% ao ano
+3. **Fundos** — Boa diversificação • 8-12% ao ano
 
-Se investir R$ 5.000 em CDB:
-- Ano 1: R$ 5.525 (ganho de R$ 525)
-- Ano 3: R$ 6.637 (ganho de R$ 1.637)
-- Ano 5: R$ 8.053 (ganho de R$ 3.053)
+📊 **Exemplo**: R$ 1.000 em CDB a 10.5%/ano:
+- 1 ano: R$ 1.105 | 3 anos: R$ 1.349 | 5 anos: R$ 1.645
 
-Qual desses produtos você gostaria de explorar mais?
+💡 O mais importante é **começar**, mesmo com pouco!
 """
-    
-    # 2. PERGUNTA SOBRE GASTOS
-    elif any(word in pergunta_lower for word in ["gasto", "despesa", "economia", "economizar"]):
-        analise = analisar_gastos(df_transacoes)
-        maior_categoria = max(analise['por_categoria'], key=analise['por_categoria'].get)
-        maior_valor = analise['por_categoria'][maior_categoria]
-        
+
+    elif any(w in pergunta_lower for w in ["gasto", "despesa", "economia", "economizar"]):
+        return """
+Vamos otimizar suas finanças! 💰
+
+📊 **Regra 50-30-20**:
+- 50% → Necessidades | 30% → Desejos | 20% → Investimentos
+
+🔍 **Dicas práticas**:
+- Revise assinaturas mensais não utilizadas
+- Faça lista antes de ir ao mercado
+- Negocie taxas bancárias
+- Reduza delivery e comer fora
+
+💡 Economizando R$ 100/mês a 10% ao ano = **R$ 7.700 em 5 anos**!
+"""
+
+    elif any(w in pergunta_lower for w in ["meta", "objetivo", "quanto tempo", "futuro"]):
         return f"""
-Vamos analisar seus gastos, {perfil['nome']}!
+Que ótimo pensar no futuro! 🎯
 
-💸 **RESUMO**:
-- Total Gasto: R$ {analise['gastos_totais']:,.2f}
-- Gasto Médio: R$ {analise['gasto_medio']:,.2f}
-- Categoria Principal: {maior_categoria} (R$ {maior_valor:,.2f})
+Seu objetivo: **{perfil['objetivo_principal']}**
 
-📊 **SUAS CATEGORIAS**:
-"""+ "\n".join([f"- {cat}: R$ {val:,.2f}" for cat, val in analise['por_categoria'].items()]) + f"""
+📋 **Passos para alcançar**:
+1. Defina um valor mensal para investir
+2. Escolha produtos do seu perfil ({perfil['perfil_risco']})
+3. Seja consistente — invista todo mês
+4. Reinvista os rendimentos
 
-⚠️ **OPORTUNIDADE**:
-Se você reduzir {maior_categoria} em 20%, economizaria R$ {maior_valor * 0.2:,.2f}/mês.
-Em um ano: **R$ {maior_valor * 0.2 * 12:,.2f}**!
+📊 R$ 200/mês a 10% ao ano:
+- 5 anos: ~R$ 15.400 | 10 anos: ~R$ 40.800 | 20 anos: ~R$ 151.800
 
-Quer que a ajude a criar um plano de economia?
+💡 O segredo é a **consistência**!
 """
-    
-    # 3. PERGUNTA SOBRE METAS/OBJETIVOS
-    elif any(word in pergunta_lower for word in ["meta", "objetivo", "quanto tempo", "futuro"]):
-        return f"""
-Ótimo, {perfil['nome']}! Seu objetivo é: **{perfil['objetivo_principal']}**
 
-Vamos calcular como chegar lá:
-
-🎯 **SEU OBJETIVO**:
-- Horizonte: {perfil['tempo_horizonte']}
-- Perfil: {perfil['perfil_risco']}
-
-💰 **ESTIMAÇÃO**:
-Com seu saldo atual de R$ {perfil['saldo_atual']:,.2f}, investindo em produtos com rendimento de 8-10% ao ano:
-- Ano 5: R$ {perfil['saldo_atual'] * 1.47:,.2f}
-- Ano 10: R$ {perfil['saldo_atual'] * 2.16:,.2f}
-- Ano 20: R$ {perfil['saldo_atual'] * 4.66:,.2f}
-
-Se adicionar R$ 500/mês:
-- Ano 5: R$ {perfil['saldo_atual'] * 1.47 + 35000:,.2f}
-- Ano 10: R$ {perfil['saldo_atual'] * 2.16 + 80000:,.2f}
-- Ano 20: R$ {perfil['saldo_atual'] * 4.66 + 200000:,.2f}
-
-Seu objetivo é totalmente alcançável! Quer criar um plano?
-"""
-    
-    # 4. PERGUNTA EDUCACIONAL
-    elif any(word in pergunta_lower for word in ["o que é", "como funciona", "diferença", "explica"]):
+    elif any(w in pergunta_lower for w in ["o que é", "como funciona", "diferença", "explica"]):
         if "cdb" in pergunta_lower:
-            return f"""
-Ótima pergunta, {perfil['nome']}! Deixa eu explicar:
+            return """
+📚 **O que é CDB?**
 
-## O que é CDB?
+CDB = Certificado de Depósito Bancário. Você empresta dinheiro ao banco e recebe juros.
 
-CDB = **Certificado de Depósito Bancário**
+✅ Protegido pelo FGC (até R$ 250 mil)
+📈 Rendimento: ~10.5% ao ano
+🔒 Risco muito baixo
 
-É como você emprestasse dinheiro para o banco, e ele te paga juros por isso.
+| Produto | Rent. Anual |
+|---------|------------|
+| Poupança | ~0.5% |
+| **CDB** | **~10.5%** |
+| Tesouro | ~9.2% |
+| Fundos | 8-12% |
 
-### Como funciona:
-1. Você investe R$ 5.000 no CDB
-2. Banco garante ~10.5% de retorno ao ano
-3. Após 1 ano, você recebe R$ 5.525
-
-### Por que é seguro?
-- Se o banco quebra, você é protegido (até R$ 250 mil - FGC)
-- Risco é MUITO BAIXO
-- Retorno é GARANTIDO
-
-### Comparação:
-- **Poupança**: 0.5%/ano (pouco retorno)
-- **CDB**: 10.5%/ano (melhor!)
-- **Fundo**: 8.5%/ano (menos seguro que CDB, mais que ações)
-
-## Recomendação para você:
-Para começar, recomendo CDB! É seguro, retorna bem, e você entende facilmente.
-
-Quer investir?
+💡 Ótima porta de entrada para investidores iniciantes!
 """
         elif "fundo" in pergunta_lower:
-            return f"""
-Ótima pergunta, {perfil['nome']}! Deixa eu explicar:
+            return """
+📚 **O que é Fundo de Investimento?**
 
-## O que é Fundo de Investimento?
+Um gestor profissional investe seu dinheiro em vários ativos.
 
-Um **Fundo** é como um clube de investidores. Você coloca seu dinheiro, e um gestor investe em vários ativos.
+🟢 Conservador: ~8.5%/ano
+🟡 Moderado: ~9-11%/ano
+🔴 Agressivo: ~12%+/ano
 
-### Como funciona:
-1. Você investe R$ 5.000
-2. Gestor investe em múltiplos produtos (ações, títulos, etc.)
-3. Você lucra com a diversificação
+| Aspecto | CDB | Fundo |
+|---------|-----|-------|
+| Retorno | Garantido | Variável |
+| Diversificação | Baixa | Alta |
 
-### Tipos:
-- **Conservador**: Títulos seguros (8.5%/ano)
-- **Moderado**: Mix de seguro + risco (9-11%/ano)
-- **Agressivo**: Ações e crescimento (12%+/ano)
-
-### Diferença do CDB:
-| CDB | Fundo |
-|-----|-------|
-| Garantido | Não garantido (menos previsível) |
-| 10.5% | 8-12% |
-| Menos diversificado | Muito diversificado |
-| Sem volatilidade | Com volatilidade |
-
-## Recomendação para você:
-Para diversificar, sugiro: 60% CDB + 40% Fundo
-
-Faz sentido?
+💡 Combine CDB (segurança) + Fundos (diversificação)!
 """
-        else:
-            return f"""
-Entendi sua pergunta, {perfil['nome']}! Vou tentar esclarecer:
+        return """
+📚 **Conceitos Financeiros**:
 
-### Conceitos Financeiros Básicos:
+💰 Investimento • 📊 Rentabilidade • 🎯 Risco • ⏱️ Horizonte
+🔄 Juros Compostos • 🛡️ FGC (proteção até R$ 250 mil)
 
-💰 **Investimento**: Colocar dinheiro em ativos para gerar retorno
-📊 **Rentabilidade**: Quanto seu dinheiro rende (%)
-🎯 **Risco**: Possibilidade de perder dinheiro
-⏱️ **Horizonte**: Tempo até precisar do dinheiro
-
-Se quiser saber mais sobre um conceito específico, pergunte!
-
-Alguns termos que posso explicar:
-- O que é CDB?
-- O que é Fundo?
-- O que é Tesouro Direto?
-- Como funciona a Bolsa?
-- O que é Diversificação?
-
-Qual desses você quer aprender?
+Posso explicar: CDB, Fundos, Tesouro Direto, Bolsa, Diversificação.
+Qual tema você quer aprender?
 """
-    
-    # 5. PERGUNTA GENÉRICA
-    else:
-        return f"""
-Oi {perfil['nome']}! 👋
 
-Entendi sua pergunta, mas vou precisar de mais detalhes para ajudar melhor!
+    return """
+Olá! 👋 Sou a **MetaFinance**, sua consultora com IA!
 
-Posso ajudá-lo com:
-📊 **Análise de Gastos** - Onde você gasta dinheiro
-💰 **Recomendações de Investimento** - Qual produto é melhor para você
-🧮 **Simulações** - Quanto seus investimentos renderão
-📚 **Educação Financeira** - Explicar conceitos (CDB, Fundo, etc.)
-🎯 **Planejamento de Metas** - Como atingir seus objetivos
+Posso ajudar com:
+📊 Gastos | 💰 Investimentos | 🧮 Simulações | 📚 Educação | 🎯 Metas
 
-O que você gostaria de fazer?
+Experimente: *"Como investir?"* · *"O que é CDB?"* · *"Como economizar?"*
 """
 
 
