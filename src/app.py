@@ -184,7 +184,7 @@ def main():
             st.session_state.historico_chat = [
                 {
                     "role": "assistant",
-                    "content": f"Oi {perfil['nome']}! 👋 Sou a Sofia Finance. Como posso ajudá-lo hoje?"
+                    "content": "👋 Sou a Sofia Finance. Como posso ajudá-lo hoje?"
                 }
             ]
         
