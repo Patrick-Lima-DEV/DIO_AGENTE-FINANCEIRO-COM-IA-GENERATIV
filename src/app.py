@@ -19,6 +19,13 @@ import google.generativeai as genai
 load_dotenv()
 api_key = os.getenv("GOOGLE_API_KEY")
 
+# Se não encontrou no .env, tenta do Streamlit Secrets (para produção/cloud)
+if not api_key:
+    try:
+        api_key = st.secrets.get("GOOGLE_API_KEY")
+    except:
+        api_key = None
+
 @st.cache_resource
 def init_gemini():
     """Inicializa o modelo Gemini com cache"""
@@ -26,7 +33,9 @@ def init_gemini():
         if api_key:
             genai.configure(api_key=api_key)
             return genai.GenerativeModel('gemini-2.5-flash')
-        return None
+        else:
+            st.warning("⚠️ GOOGLE_API_KEY não configurada. Configure em Streamlit Secrets (produção) ou .env (desenvolvimento)")
+            return None
     except Exception as e:
         st.error(f"⚠️ Erro ao conectar Gemini: {str(e)}")
         return None
