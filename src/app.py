@@ -492,7 +492,7 @@ def main():
     st.markdown(
         """
         <div style="text-align: center; color: #777; font-size: 0.85em; padding: 20px 0;">
-            <p>Desenvolvido por patrick lima, parte do projeto de certificação DIO</p>
+            <p>Desenvolvido por Patrick Lima, parte do projeto de certificação DIO</p>
         </div>
         """,
         unsafe_allow_html=True
