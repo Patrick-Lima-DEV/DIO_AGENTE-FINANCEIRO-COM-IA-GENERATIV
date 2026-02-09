@@ -580,12 +580,28 @@ def main():
         
         col1, col2 = st.columns(2)
         with col1:
+            # Normalizar tempo_horizonte para compatibilidade com dados antigos
+            tempo_atual = st.session_state.perfil_usuario.get("tempo_horizonte", "longo prazo (5+ anos)")
+            opcoes_tempo = ["curto prazo (0-2 anos)", "médio prazo (2-5 anos)", "longo prazo (5+ anos)"]
+            
+            # Mapeamento para compatibilidade com valores antigos do JSON
+            mapeamento_tempo = {
+                "curto prazo": "curto prazo (0-2 anos)",
+                "médio prazo": "médio prazo (2-5 anos)",
+                "longo prazo": "longo prazo (5+ anos)",
+            }
+            
+            # Normalizar o valor se estiver no formato antigo
+            tempo_normalizado = mapeamento_tempo.get(tempo_atual, tempo_atual)
+            
+            # Garantir que o valor está nas opções
+            if tempo_normalizado not in opcoes_tempo:
+                tempo_normalizado = "longo prazo (5+ anos)"
+            
             tempo_horizonte_novo = st.selectbox(
                 "⏱️ Horizonte de Tempo",
-                ["curto prazo (0-2 anos)", "médio prazo (2-5 anos)", "longo prazo (5+ anos)"],
-                index=["curto prazo (0-2 anos)", "médio prazo (2-5 anos)", "longo prazo (5+ anos)"].index(
-                    st.session_state.perfil_usuario.get("tempo_horizonte", "longo prazo (5+ anos)")
-                )
+                opcoes_tempo,
+                index=opcoes_tempo.index(tempo_normalizado)
             )
         with col2:
             objetivos_sec = st.multiselect(
