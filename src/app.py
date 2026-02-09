@@ -380,8 +380,15 @@ def main():
     if pagina == "💬 Chat IA":
         st.markdown('<div class="sec-title">💬 Chat com MetaFinance</div>', unsafe_allow_html=True)
 
+        # Mostrar aviso se usuário não customizou perfil
+        if not st.session_state.usuario_customizado:
+            st.info(
+                "ℹ️ **Configure seu perfil primeiro!** Clique em **👤 Meu Perfil** na navegação para "
+                "fornecer seus dados e receber análises personalizadas."
+            )
+
         render_info(
-            "Olá! Sou a <b>Meta</b>, sua consultora com IA. Pergunte sobre "
+            "Olá! Sou a <b>MetaFinance</b>, sua consultora financeira com IA. Pergunte sobre "
             "<b>investimentos</b>, <b>economia</b>, <b>produtos financeiros</b> "
             "ou peça <b>dicas educativas</b>. 🚀"
         )
@@ -770,7 +777,7 @@ def gerar_analise_perfil_ia(perfil, modelo_gemini=None, usuario_customizado=Fals
     if modelo_gemini:
         try:
             prompt = f"""
-Você é Sofia Finance. Faça uma análise breve e personalizada do perfil deste cliente para apresentar as recomendações adequadas.
+Você é MetaFinance, uma consultora financeira com IA. Faça uma análise breve e personalizada do perfil deste cliente para apresentar as recomendações adequadas.
 
 ## PERFIL DO CLIENTE
 - **Idade**: {perfil.get('idade', 'N/A')} anos
@@ -790,6 +797,7 @@ Você é Sofia Finance. Faça uma análise breve e personalizada do perfil deste
 6. Máximo 120 palavras
 7. Use tom conversacional, nunca técnico
 8. Inclua 1-2 emojis
+9. SEMPRE se apresente como **MetaFinance**, não use outro nome
             """
             response = modelo_gemini.generate_content(prompt)
             return response.text
@@ -855,7 +863,7 @@ Dê respostas genéricas e educativas, incentivando a **configuração do perfil
             """
             
             prompt = f"""
-Você é Sofia Finance, uma consultora financeira especializada em finanças pessoais brasileiras.
+Você é MetaFinance, uma consultora financeira com IA especializada em finanças pessoais brasileiras.
 
 {contexto_usuario}
 
@@ -873,6 +881,7 @@ Você é Sofia Finance, uma consultora financeira especializada em finanças pes
 9. Máximo 280 palavras, use emojis naturalmente
 10. SEMPRE mencione que é consultoria genérica, não consultoria tributária/legal
 11. Se usuário não customizou perfil, sugira que customize para obter análises mais precisas
+12. SEMPRE se apresente como **MetaFinance**, nunca use outro nome ou "Sofia Finance"
             """
             response = modelo_gemini.generate_content(prompt)
             return response.text
