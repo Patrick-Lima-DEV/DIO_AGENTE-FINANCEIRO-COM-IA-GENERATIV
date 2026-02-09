@@ -329,11 +329,20 @@ def main():
         st.error("⚠️ Não foi possível carregar os dados. Verifique a pasta `/data`.")
         return
 
+    # ── INICIALIZAR SESSION STATE ──
+    if "usuario_customizado" not in st.session_state:
+        st.session_state.usuario_customizado = False
+    if "perfil_usuario" not in st.session_state:
+        st.session_state.perfil_usuario = perfil.copy()  # Começa com valores padrão, mas pode ser customizado
+
+    # Usar perfil customizado se disponível, caso contrário usar padrão
+    perfil_ativo = st.session_state.perfil_usuario
+
     # ── SIDEBAR ──
-    nome = perfil["nome"]
-    renda_fmt = f"R$ {perfil['renda_mensal']:,.0f}"
-    saldo_fmt = f"R$ {perfil['saldo_atual']:,.0f}"
-    risco = perfil["perfil_risco"].capitalize()
+    nome = perfil_ativo.get("nome", "Usuário")
+    renda_fmt = f"R$ {perfil_ativo.get('renda_mensal', 0):,.0f}" if perfil_ativo.get('renda_mensal', 0) > 0 else "Não informado"
+    saldo_fmt = f"R$ {perfil_ativo.get('saldo_atual', 0):,.0f}" if perfil_ativo.get('saldo_atual', 0) > 0 else "Não informado"
+    risco = perfil_ativo.get("perfil_risco", "moderado").capitalize()
 
     st.sidebar.markdown(f"""
         <div class="sb-profile">
@@ -355,7 +364,7 @@ def main():
 
     pagina = st.sidebar.radio(
         "🧭 Navegação",
-        ["💬 Chat IA", "📊 Gastos", "🎯 Simulador", "📈 Recomendações", "ℹ️ Sobre", "📜 Histórico"],
+        ["💬 Chat IA", "📊 Gastos", "🎯 Simulador", "📈 Recomendações", "👤 Meu Perfil", "ℹ️ Sobre", "📜 Histórico"],
         label_visibility="collapsed",
     )
 
@@ -391,7 +400,7 @@ def main():
         if user_input:
             st.session_state.historico_chat.append({"role": "user", "content": user_input})
             with st.spinner("🤔 MetaFinance está analisando..."):
-                resposta = gerar_resposta_meta(user_input, perfil, df_transacoes, produtos, modelo_gemini)
+                resposta = gerar_resposta_meta(user_input, perfil_ativo, df_transacoes, produtos, modelo_gemini, st.session_state.usuario_customizado)
             st.session_state.historico_chat.append({"role": "assistant", "content": resposta})
             st.rerun()
 
@@ -478,7 +487,7 @@ def main():
         st.markdown('<div class="sec-title">📈 Recomendações Personalizadas</div>', unsafe_allow_html=True)
 
         # Gerar análise personalizada com IA
-        analise_ia = gerar_analise_perfil_ia(perfil, modelo_gemini)
+        analise_ia = gerar_analise_perfil_ia(perfil_ativo, modelo_gemini, st.session_state.usuario_customizado)
         render_info(analise_ia)
 
         recomendacoes = recomendar_produtos(perfil, produtos)
@@ -518,6 +527,112 @@ def main():
                 """, unsafe_allow_html=True)
         else:
             st.warning("⚠️ Nenhum produto elegível no momento. Acumule mais saldo para começar!")
+
+    # ═══════════════════════════════════════
+    # PÁGINA: MEU PERFIL
+    # ═══════════════════════════════════════
+    elif pagina == "👤 Meu Perfil":
+        st.markdown('<div class="sec-title">👤 Meu Perfil Financeiro</div>', unsafe_allow_html=True)
+        render_info(
+            "Configure seus dados pessoais e financeiros para receber recomendações mais precisas e personalizadas. "
+            "Todos os dados são mantidos em segurança localmente. 🔒"
+        )
+
+        st.markdown('<div class="sec-title">📝 Dados Pessoais</div>', unsafe_allow_html=True)
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            nome_novo = st.text_input("👤 Nome Completo", value=st.session_state.perfil_usuario.get("nome", ""), placeholder="Seu nome aqui")
+        with col2:
+            idade_nova = st.number_input("🎂 Idade", min_value=18, max_value=100, value=st.session_state.perfil_usuario.get("idade", 30), step=1)
+        with col3:
+            profissao_nova = st.text_input("💼 Profissão", value=st.session_state.perfil_usuario.get("profissao", ""), placeholder="Ex: Analista de Sistemas")
+
+        st.markdown('<div class="sec-title">💰 Dados Financeiros</div>', unsafe_allow_html=True)
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            renda_nova = st.number_input("💵 Renda Mensal (R$)", min_value=0.0, value=float(st.session_state.perfil_usuario.get("renda_mensal", 0)), step=100.0)
+        with col2:
+            saldo_novo = st.number_input("💰 Saldo Atual (R$)", min_value=0.0, value=float(st.session_state.perfil_usuario.get("saldo_atual", 0)), step=100.0)
+        with col3:
+            patrimonio_novo = st.number_input("🏦 Patrimônio Total (R$)", min_value=0.0, value=float(st.session_state.perfil_usuario.get("patrimonio_total", 0)), step=100.0)
+
+        st.markdown('<div class="sec-title">🎯 Perfil de Investimento</div>', unsafe_allow_html=True)
+        col1, col2 = st.columns(2)
+        with col1:
+            risco_novo = st.selectbox(
+                "🎲 Perfil de Risco",
+                ["conservador", "moderado", "agressivo"],
+                index=["conservador", "moderado", "agressivo"].index(st.session_state.perfil_usuario.get("perfil_risco", "moderado"))
+            )
+        with col2:
+            experiencia_nova = st.selectbox(
+                "📚 Experiência em Investimentos",
+                ["iniciante", "intermediaria", "avancada"],
+                index=["iniciante", "intermediaria", "avancada"].index(st.session_state.perfil_usuario.get("experiencia_investimentos", "intermediaria"))
+            )
+
+        st.markdown('<div class="sec-title">🎯 Objetivos Financeiros</div>', unsafe_allow_html=True)
+        objetivo_principal_novo = st.text_input(
+            "🎯 Objetivo Principal",
+            value=st.session_state.perfil_usuario.get("objetivo_principal", ""),
+            placeholder="Ex: Aposentadoria em 25 anos"
+        )
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            tempo_horizonte_novo = st.selectbox(
+                "⏱️ Horizonte de Tempo",
+                ["curto prazo (0-2 anos)", "médio prazo (2-5 anos)", "longo prazo (5+ anos)"],
+                index=["curto prazo (0-2 anos)", "médio prazo (2-5 anos)", "longo prazo (5+ anos)"].index(
+                    st.session_state.perfil_usuario.get("tempo_horizonte", "longo prazo (5+ anos)")
+                )
+            )
+        with col2:
+            objetivos_sec = st.multiselect(
+                "📌 Objetivos Secundários",
+                ["Casa própria", "Educação dos filhos", "Viagem internacional", "Carro novo", "Negócio próprio", "Outros"],
+                default=st.session_state.perfil_usuario.get("objetivos_secundarios", [])
+            )
+
+        render_divider()
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("💾 Salvar Alterações", use_container_width=True, type="primary"):
+                st.session_state.perfil_usuario = {
+                    **st.session_state.perfil_usuario,
+                    "nome": nome_novo or "Usuário",
+                    "idade": idade_nova,
+                    "profissao": profissao_nova,
+                    "renda_mensal": renda_nova,
+                    "saldo_atual": saldo_novo,
+                    "patrimonio_total": patrimonio_novo,
+                    "perfil_risco": risco_novo,
+                    "experiencia_investimentos": experiencia_nova,
+                    "objetivo_principal": objetivo_principal_novo,
+                    "tempo_horizonte": tempo_horizonte_novo,
+                    "objetivos_secundarios": objetivos_sec,
+                }
+                st.session_state.usuario_customizado = True
+                st.success("✅ Perfil atualizado com sucesso!")
+                st.balloons()
+        
+        with col2:
+            if st.button("🔄 Usar Dados de Exemplo", use_container_width=True):
+                st.session_state.perfil_usuario = perfil.copy()
+                st.session_state.usuario_customizado = False
+                st.info("ℹ️ Recarregue a página para ver os dados de exemplo")
+
+        render_divider()
+
+        st.markdown('<div class="sec-title">ℹ️ Como Seus Dados São Usados</div>', unsafe_allow_html=True)
+        st.markdown("""
+        - **Chat IA**: Personaliza respostas com base no seu perfil
+        - **Recomendações**: Sugere produtos adequados ao seu risco e objetivos
+        - **Análises**: Contextualiza gastos com base na sua renda
+        - **Privacidade**: Todos os dados são mantidos localmente no seu navegador
+        - **Sem Compartilhamento**: Nenhum dado é enviado a terceiros
+        """)
 
     # ═══════════════════════════════════════
     # PÁGINA: SOBRE
@@ -598,8 +713,13 @@ Alertas e previsões com ML
 # FUNÇÕES DE RESPOSTA COM IA
 # ═══════════════════════════════════════════════
 
-def gerar_analise_perfil_ia(perfil, modelo_gemini=None):
+def gerar_analise_perfil_ia(perfil, modelo_gemini=None, usuario_customizado=False):
     """Gera uma análise personalizada do perfil do cliente usando IA"""
+    
+    # Se usuário não forneceu dados, usar mensagem padrão
+    if not usuario_customizado:
+        return render_analise_inicial_padrao()
+    
     objetivos = perfil.get('objetivo_principal', 'não definido')
     objetivos_sec = perfil.get('objetivos_secundarios', [])
     
@@ -638,6 +758,16 @@ Você é Sofia Finance. Faça uma análise breve e personalizada do perfil deste
     return gerar_analise_padrao(perfil)
 
 
+def render_analise_inicial_padrao():
+    """Mensagem padrão quando usuário ainda não customizou seu perfil"""
+    return """
+    <b>👋 Bem-vindo à MetaFinance!</b><br><br>
+    Para começar, configure seu perfil financeiro clicando em <b>👤 Meu Perfil</b> na navegação lateral. 
+    Isso vai personalizar todas as análises, recomendações e simulações para sua situação específica. 💡<br><br>
+    <em>Todos os seus dados são mantidos em segurança localmente no seu navegador — nada é compartilhado!</em> 🔒
+    """
+
+
 def gerar_analise_padrao(perfil):
     """Análise padrão quando IA não está disponível"""
     objetivos = perfil.get('objetivo_principal', 'não definido')
@@ -656,7 +786,7 @@ com múltiplos objetivos financeiros: {texto_objetivos}.
 Vou recomendar produtos que alinhem com seu horizonte de tempo e tolerância a risco. 🎯
     """
 
-def gerar_resposta_meta(pergunta, perfil, df_transacoes, produtos, modelo_gemini=None):
+def gerar_resposta_meta(pergunta, perfil, df_transacoes, produtos, modelo_gemini=None, usuario_customizado=False):
     if modelo_gemini:
         try:
             # Construir contexto de objetivos de forma dinâmica
@@ -666,19 +796,32 @@ def gerar_resposta_meta(pergunta, perfil, df_transacoes, produtos, modelo_gemini
             if objetivos_sec:
                 objetivos += " + " + ", ".join(objetivos_sec)
             
-            prompt = f"""
-Você é Sofia Finance, uma consultora financeira especializada em finanças pessoais brasileiras.
-
+            # Se usuário não customizou, não mencionar dados específicos
+            contexto_usuario = ""
+            if usuario_customizado:
+                contexto_usuario = f"""
 ## CONTEXTO DO CLIENTE
 **Perfil**: {perfil['perfil_risco'].capitalize()} (tolerância a risco) | Idade: {perfil.get('idade', 'não informada')} anos
 **Horizonte**: {perfil.get('tempo_horizonte', 'não informado')}
 **Objetivos**: {objetivos}
 **Experiência**: {perfil.get('experiencia_investimentos', 'não informada')}
+            """
+            else:
+                contexto_usuario = f"""
+## LEMBRANÇA
+O cliente ainda não forneceu dados pessoais específicos.
+Dê respostas genéricas e educativas, incentivando a **configuração do perfil em "👤 Meu Perfil"** para recomendações mais precisas.
+            """
+            
+            prompt = f"""
+Você é Sofia Finance, uma consultora financeira especializada em finanças pessoais brasileiras.
+
+{contexto_usuario}
 
 ## PERGUNTA: {pergunta}
 
 ## INSTRUÇÕES CRITICAS:
-1. **Personalize** a resposta para Este perfil específico, NÃO genérico
+1. **Personalize** a resposta para este perfil específico, NÃO genérico
 2. **Reconheça os objetivos reais** do cliente — cada pessoa tem prioridades diferentes
 3. Se for sobre objetivos de vida/meta, fale sobre TODOS os objetivos mencionados
 4. Responda de forma conversacional, educativa, nunca alarmista
@@ -688,17 +831,23 @@ Você é Sofia Finance, uma consultora financeira especializada em finanças pes
 8. Se há dúvida, pergunte/esclareça antes de recomendar
 9. Máximo 280 palavras, use emojis naturalmente
 10. SEMPRE mencione que é consultoria genérica, não consultoria tributária/legal
+11. Se usuário não customizou perfil, sugira que customize para obter análises mais precisas
             """
             response = modelo_gemini.generate_content(prompt)
             return response.text
         except Exception as e:
             st.warning(f"⚠️ Erro na IA: {str(e)}. Usando resposta padrão...")
-            return gerar_resposta_padrao(pergunta, perfil, df_transacoes, produtos)
-    return gerar_resposta_padrao(pergunta, perfil, df_transacoes, produtos)
+            return gerar_resposta_padrao(pergunta, perfil, df_transacoes, produtos, usuario_customizado)
+    return gerar_resposta_padrao(pergunta, perfil, df_transacoes, produtos, usuario_customizado)
 
 
-def gerar_resposta_padrao(pergunta, perfil, df_transacoes, produtos):
+def gerar_resposta_padrao(pergunta, perfil, df_transacoes, produtos, usuario_customizado=False):
     pergunta_lower = pergunta.lower()
+    
+    dica_perfil = ""
+    if not usuario_customizado:
+        dica_perfil = "\n\n💡 *Para respostas mais personalizadas, configure seu perfil em **👤 Meu Perfil***"
+    
     objetivos = perfil.get('objetivo_principal', '')
     objetivos_sec = perfil.get('objetivos_secundarios', [])
     
@@ -722,11 +871,11 @@ def gerar_resposta_padrao(pergunta, perfil, df_transacoes, produtos):
 
 💡 O mais importante é **começar**, mesmo com pouco!
 
-⚠️ *Consultoria genérica — consulte especialista para análise tributária*
+⚠️ *Consultoria genérica — consulte especialista para análise tributária*{dica_perfil}
 """
 
     elif any(w in pergunta_lower for w in ["gasto", "despesa", "economia", "economizar"]):
-        return """
+        return f"""
 Vamos otimizar suas finanças! 💰
 
 📊 **Regra 50-30-20**:
@@ -740,14 +889,14 @@ Vamos otimizar suas finanças! 💰
 
 💡 Economizando R$ 100/mês a 10% ao ano = **R$ 7.700 em 5 anos**!
 
-⚠️ *Cada perfil tem metas diferentes — personalize conforme sua realidade*
+⚠️ *Cada perfil tem metas diferentes — personalize conforme sua realidade*{dica_perfil}
 """
 
     elif any(w in pergunta_lower for w in ["meta", "objetivo", "quanto tempo", "futuro"]):
         return f"""
 Que ótimo pensar no futuro! 🎯
 
-**Seus objetivos**: {objetivos_texto}
+**Seus objetivos**: {objetivos_texto if usuario_customizado else "Configure em 👤 Meu Perfil para ver análise personalizada"}
 
 📋 **Estratégia para Múltiplos Objetivos**:
 1. Liste objetivos por prazo: curto (0-2 anos) | médio (2-5) | longo (5+)
@@ -760,12 +909,12 @@ Que ótimo pensar no futuro! 🎯
 
 💡 O segredo é a **consistência** e **diversificação** entre metas!
 
-⚠️ *Prazos realistas = aposentadoria não é para todos a 25 anos — considere SUA realidade*
+⚠️ *Prazos realistas — nem todo mundo tem 25 anos para aposentar*{dica_perfil}
 """
 
     elif any(w in pergunta_lower for w in ["o que é", "como funciona", "diferença", "explica"]):
         if "cdb" in pergunta_lower:
-            return """
+            return f"""
 📚 **O que é CDB?**
 
 CDB = Certificado de Depósito Bancário. Você empresta dinheiro ao banco e recebe juros.
@@ -781,10 +930,10 @@ CDB = Certificado de Depósito Bancário. Você empresta dinheiro ao banco e rec
 | Tesouro | ~9.2% |
 | Fundos | 8-12% |
 
-💡 Ótima porta de entrada para investidores iniciantes!
+💡 Ótima porta de entrada para investidores iniciantes!{dica_perfil}
 """
         elif "fundo" in pergunta_lower:
-            return """
+            return f"""
 📚 **O que é Fundo de Investimento?**
 
 Um gestor profissional investe seu dinheiro em vários ativos.
@@ -798,25 +947,25 @@ Um gestor profissional investe seu dinheiro em vários ativos.
 | Retorno | Garantido | Variável |
 | Diversificação | Baixa | Alta |
 
-💡 Combine CDB (segurança) + Fundos (diversificação)!
+💡 Combine CDB (segurança) + Fundos (diversificação)!{dica_perfil}
 """
-        return """
+        return f"""
 📚 **Conceitos Financeiros**:
 
 💰 Investimento • 📊 Rentabilidade • 🎯 Risco • ⏱️ Horizonte
 🔄 Juros Compostos • 🛡️ FGC (proteção até R$ 250 mil)
 
 Posso explicar: CDB, Fundos, Tesouro Direto, Bolsa, Diversificação.
-Qual tema você quer aprender?
+Qual tema você quer aprender?{dica_perfil}
 """
 
-    return """
+    return f"""
 Olá! 👋 Sou a **MetaFinance**, sua consultora com IA!
 
 Posso ajudar com:
 📊 Gastos | 💰 Investimentos | 🧮 Simulações | 📚 Educação | 🎯 Metas
 
-Experimente: *"Como investir?"* · *"O que é CDB?"* · *"Como economizar?"*
+Experimente: *"Como investir?"* · *"O que é CDB?"* · *"Como economizar?"*{dica_perfil}
 """
 
 
