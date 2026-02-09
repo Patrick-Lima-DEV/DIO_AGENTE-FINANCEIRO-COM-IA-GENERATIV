@@ -1,3 +1,12 @@
+-dev
+Meus aplicativos
+Meu perfil
+Explorar
+Discutir
+Criar aplicativo
+Aplicativos de patrick-lima-dev
+dio_agente-financeiro-com-ia-generativ ∙ main ∙ src/app.py
+
 # 🤝 Guia de Contribuição
 
 Obrigado por considerar contribuir para Sofia Finance! Este documento fornece diretrizes e instruções para ajudar na contribuição.

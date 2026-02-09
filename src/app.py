@@ -477,10 +477,9 @@ def main():
     elif pagina == "📈 Recomendações":
         st.markdown('<div class="sec-title">📈 Recomendações Personalizadas</div>', unsafe_allow_html=True)
 
-        render_info(
-            f"Produtos selecionados para seu perfil <b>{perfil['perfil_risco'].upper()}</b> "
-            f"com objetivo de <b>{perfil['objetivo_principal']}</b>."
-        )
+        # Gerar análise personalizada com IA
+        analise_ia = gerar_analise_perfil_ia(perfil, modelo_gemini)
+        render_info(analise_ia)
 
         recomendacoes = recomendar_produtos(perfil, produtos)
         elegiveis = [r for r in recomendacoes if r["elegibilidade"] == "Elegível"]
@@ -599,28 +598,96 @@ Alertas e previsões com ML
 # FUNÇÕES DE RESPOSTA COM IA
 # ═══════════════════════════════════════════════
 
-def gerar_resposta_meta(pergunta, perfil, df_transacoes, produtos, modelo_gemini=None):
+def gerar_analise_perfil_ia(perfil, modelo_gemini=None):
+    """Gera uma análise personalizada do perfil do cliente usando IA"""
+    objetivos = perfil.get('objetivo_principal', 'não definido')
+    objetivos_sec = perfil.get('objetivos_secundarios', [])
+    
+    if objetivos_sec:
+        objetivos += " • " + " • ".join(objetivos_sec)
+    
     if modelo_gemini:
         try:
             prompt = f"""
-            Você é MetaFinance, uma consultora financeira digital especializada em finanças pessoais brasileiras.
+Você é Sofia Finance. Faça uma análise breve e personalizada do perfil deste cliente para apresentar as recomendações adequadas.
 
-            PERFIL DO CLIENTE:
-            - Perfil de Risco: {perfil['perfil_risco']}
-            - Objetivo Principal: {perfil['objetivo_principal']}
-            - Horizonte de Investimento: {perfil['tempo_horizonte']}
+## PERFIL DO CLIENTE
+- **Idade**: {perfil.get('idade', 'N/A')} anos
+- **Experiência em Investimentos**: {perfil.get('experiencia_investimentos', 'iniciante')}
+- **Perfil de Risco**: {perfil['perfil_risco']}
+- **Horizonte de Tempo**: {perfil.get('tempo_horizonte', 'não informado')}
+- **Objetivos**: {objetivos}
+- **Estado Civil**: {perfil.get('estado_civil', 'não informado')}
+- **Dependentes**: {perfil.get('dependentes', 0)}
 
-            PERGUNTA DO CLIENTE: {pergunta}
+## INSTRUÇÕES
+1. Gere um parágrafo de apresentação que considere TODOS os objetivos mencionados
+2. NÃO diga "Pelo seu perfil, vejo que seu grande objetivo é aposentadoria em 25 anos" — isso é genérico demais
+3. Reconheça a pluralidade de objetivos: "Vejo que você está equilibrando múltiplos objetivos..."
+4. Mencione como o perfil de risco se alinha com os objetivos
+5. Seja empático — nem todos têm 25 anos para aposentar
+6. Máximo 120 palavras
+7. Use tom conversacional, nunca técnico
+8. Inclua 1-2 emojis
+            """
+            response = modelo_gemini.generate_content(prompt)
+            return response.text
+        except Exception as e:
+            return gerar_analise_padrao(perfil)
+    
+    return gerar_analise_padrao(perfil)
 
-            INSTRUÇÕES:
-            1. Responda de forma conversacional, educativa e amigável
-            2. NÃO mencione valores específicos de renda, saldo ou gastos do cliente
-            3. Fale de forma genérica sobre estratégias financeiras adequadas ao perfil
-            4. Se a pergunta for sobre investimentos, explique produtos como CDB, Fundos, Tesouro Direto
-            5. Dê dicas práticas e acessíveis para qualquer pessoa
-            6. Mantenha a resposta concisa (máximo 250 palavras)
-            7. Use emojis quando apropriado
-            8. Sempre incentive educação financeira
+
+def gerar_analise_padrao(perfil):
+    """Análise padrão quando IA não está disponível"""
+    objetivos = perfil.get('objetivo_principal', 'não definido')
+    objetivos_sec = perfil.get('objetivos_secundarios', [])
+    
+    texto_objetivos = f"<b>{objetivos}</b>"
+    if objetivos_sec:
+        texto_objetivos += " • " + " • ".join([f"<b>{o}</b>" for o in objetivos_sec])
+    
+    risco = perfil['perfil_risco'].capitalize()
+    experiencia = perfil.get('experiencia_investimentos', 'iniciante').capitalize()
+    
+    return f"""
+Análise do seu perfil: Você é um investidor com perfil <b>{risco}</b>, experiência <b>{experiencia}</b>, 
+com múltiplos objetivos financeiros: {texto_objetivos}. 
+Vou recomendar produtos que alinhem com seu horizonte de tempo e tolerância a risco. 🎯
+    """
+
+def gerar_resposta_meta(pergunta, perfil, df_transacoes, produtos, modelo_gemini=None):
+    if modelo_gemini:
+        try:
+            # Construir contexto de objetivos de forma dinâmica
+            objetivos = perfil.get('objetivo_principal', 'Não definido')
+            objetivos_sec = perfil.get('objetivos_secundarios', [])
+            
+            if objetivos_sec:
+                objetivos += " + " + ", ".join(objetivos_sec)
+            
+            prompt = f"""
+Você é Sofia Finance, uma consultora financeira especializada em finanças pessoais brasileiras.
+
+## CONTEXTO DO CLIENTE
+**Perfil**: {perfil['perfil_risco'].capitalize()} (tolerância a risco) | Idade: {perfil.get('idade', 'não informada')} anos
+**Horizonte**: {perfil.get('tempo_horizonte', 'não informado')}
+**Objetivos**: {objetivos}
+**Experiência**: {perfil.get('experiencia_investimentos', 'não informada')}
+
+## PERGUNTA: {pergunta}
+
+## INSTRUÇÕES CRITICAS:
+1. **Personalize** a resposta para Este perfil específico, NÃO genérico
+2. **Reconheça os objetivos reais** do cliente — cada pessoa tem prioridades diferentes
+3. Se for sobre objetivos de vida/meta, fale sobre TODOS os objetivos mencionados
+4. Responda de forma conversacional, educativa, nunca alarmista
+5. Não especule sobre valores de renda/saldo — fale de forma relativa
+6. Inclua exemplos práticos quando possível
+7. Use tom empático — entenda que nem todos têm 25 anos para aposentar
+8. Se há dúvida, pergunte/esclareça antes de recomendar
+9. Máximo 280 palavras, use emojis naturalmente
+10. SEMPRE mencione que é consultoria genérica, não consultoria tributária/legal
             """
             response = modelo_gemini.generate_content(prompt)
             return response.text
@@ -632,6 +699,13 @@ def gerar_resposta_meta(pergunta, perfil, df_transacoes, produtos, modelo_gemini
 
 def gerar_resposta_padrao(pergunta, perfil, df_transacoes, produtos):
     pergunta_lower = pergunta.lower()
+    objetivos = perfil.get('objetivo_principal', '')
+    objetivos_sec = perfil.get('objetivos_secundarios', [])
+    
+    # Montar string de objetivos
+    objetivos_texto = objetivos
+    if objetivos_sec:
+        objetivos_texto += " • " + " • ".join(objetivos_sec)
 
     if any(w in pergunta_lower for w in ["investir", "investimento", "rendimento", "retorno"]):
         return f"""
@@ -647,6 +721,8 @@ def gerar_resposta_padrao(pergunta, perfil, df_transacoes, produtos):
 - 1 ano: R$ 1.105 | 3 anos: R$ 1.349 | 5 anos: R$ 1.645
 
 💡 O mais importante é **começar**, mesmo com pouco!
+
+⚠️ *Consultoria genérica — consulte especialista para análise tributária*
 """
 
     elif any(w in pergunta_lower for w in ["gasto", "despesa", "economia", "economizar"]):
@@ -663,24 +739,28 @@ Vamos otimizar suas finanças! 💰
 - Reduza delivery e comer fora
 
 💡 Economizando R$ 100/mês a 10% ao ano = **R$ 7.700 em 5 anos**!
+
+⚠️ *Cada perfil tem metas diferentes — personalize conforme sua realidade*
 """
 
     elif any(w in pergunta_lower for w in ["meta", "objetivo", "quanto tempo", "futuro"]):
         return f"""
 Que ótimo pensar no futuro! 🎯
 
-Seu objetivo: **{perfil['objetivo_principal']}**
+**Seus objetivos**: {objetivos_texto}
 
-📋 **Passos para alcançar**:
-1. Defina um valor mensal para investir
-2. Escolha produtos do seu perfil ({perfil['perfil_risco']})
-3. Seja consistente — invista todo mês
-4. Reinvista os rendimentos
+📋 **Estratégia para Múltiplos Objetivos**:
+1. Liste objetivos por prazo: curto (0-2 anos) | médio (2-5) | longo (5+)
+2. Aloque % de renda para cada um
+3. Escolha produtos conforme o prazo
+4. Revise 1x por trimestre
 
-📊 R$ 200/mês a 10% ao ano:
+📊 **Exemplo**: R$ 200/mês a 10%/ano:
 - 5 anos: ~R$ 15.400 | 10 anos: ~R$ 40.800 | 20 anos: ~R$ 151.800
 
-💡 O segredo é a **consistência**!
+💡 O segredo é a **consistência** e **diversificação** entre metas!
+
+⚠️ *Prazos realistas = aposentadoria não é para todos a 25 anos — considere SUA realidade*
 """
 
     elif any(w in pergunta_lower for w in ["o que é", "como funciona", "diferença", "explica"]):
