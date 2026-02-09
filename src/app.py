@@ -604,10 +604,35 @@ def main():
                 index=opcoes_tempo.index(tempo_normalizado)
             )
         with col2:
+            # Normalizar objetivos secundários para compatibilidade com dados antigos
+            opcoes_objetivos = ["Casa própria", "Educação dos filhos", "Viagem internacional", "Carro novo", "Negócio próprio", "Outros"]
+            
+            # Mapeamento de valores antigos para novos
+            mapeamento_objetivos = {
+                "Fundo para educação do filho": "Educação dos filhos",
+                "Casa própria em 5 anos": "Casa própria",
+                "Educação do filho": "Educação dos filhos",
+                "Educação do filhos": "Educação dos filhos",  # Typos
+            }
+            
+            # Obter objetivos e normalizá-los
+            objetivos_atuais = st.session_state.perfil_usuario.get("objetivos_secundarios", [])
+            objetivos_normalizados = []
+            
+            for obj in objetivos_atuais:
+                # Se está no mapeamento, usar o novo valor
+                obj_novo = mapeamento_objetivos.get(obj, obj)
+                # Se está nas opções, adicionar à lista
+                if obj_novo in opcoes_objetivos:
+                    objetivos_normalizados.append(obj_novo)
+                # Se não mapeou e está direto nas opções, ok
+                elif obj in opcoes_objetivos:
+                    objetivos_normalizados.append(obj)
+            
             objetivos_sec = st.multiselect(
                 "📌 Objetivos Secundários",
-                ["Casa própria", "Educação dos filhos", "Viagem internacional", "Carro novo", "Negócio próprio", "Outros"],
-                default=st.session_state.perfil_usuario.get("objetivos_secundarios", [])
+                opcoes_objetivos,
+                default=objetivos_normalizados
             )
 
         render_divider()
