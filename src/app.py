@@ -66,17 +66,35 @@ st.markdown("""
 
     /* === HEADER HERO === */
     .hero {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 2rem 2.5rem;
+        background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+        padding: 1.5rem 2rem;
         border-radius: 20px;
         color: white;
-        margin-bottom: 1.8rem;
+        margin-bottom: 1.5rem;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        box-shadow: 0 10px 40px rgba(102,126,234,0.3);
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
         position: relative;
         overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    @media (max-width: 768px) {
+        .hero { flex-direction: column; text-align: center; gap: 1rem; padding: 1.5rem; }
+        .hero-left { flex-direction: column; gap: 0.5rem; }
+        .hero-badge { 
+            order: -1; 
+            margin-bottom: 0.5rem; 
+            width: 100%;
+            text-align: center;
+            font-size: 0.78em;
+            padding: 0.45rem 0.9rem;
+            letter-spacing: 0.8px;
+            white-space: normal;
+            line-height: 1.2;
+            opacity: 0.9;
+        }
+        .hero-title { font-size: 1.8em; }
     }
     .hero::before {
         content: '';
@@ -93,13 +111,15 @@ st.markdown("""
     .hero-title { font-size: 2.2em; font-weight: 800; letter-spacing: -1px; }
     .hero-sub { font-size: 0.95em; opacity: 0.85; margin-top: 2px; }
     .hero-badge {
-        background: rgba(255,255,255,0.2);
-        padding: 0.5rem 1.2rem;
+        background: rgba(255,255,255,0.1);
+        padding: 0.4rem 1rem;
         border-radius: 25px;
-        font-size: 0.85em;
+        font-size: 0.75em;
         backdrop-filter: blur(10px);
-        border: 1px solid rgba(255,255,255,0.15);
+        border: 1px solid rgba(255,255,255,0.1);
         z-index: 1;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
 
     /* === SIDEBAR PROFILE === */
@@ -179,6 +199,9 @@ st.markdown("""
     .bg-red { background: #fee2e2; color: #991b1b; }
     .p-meta { margin-bottom: 1rem; font-size: 0.88em; color: #999; }
     .p-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; }
+    @media (max-width: 768px) {
+        .p-grid { grid-template-columns: repeat(2, 1fr); }
+    }
     .p-stat { text-align: center; padding: 0.8rem 0.4rem; background: #f8f9fc; border-radius: 12px; }
     .p-stat-val { font-size: 1.05em; font-weight: 700; color: #667eea; }
     .p-stat-lbl { font-size: 0.72em; color: #999; margin-top: 3px; }
@@ -210,6 +233,55 @@ st.markdown("""
 
     /* === CHAT === */
     .stChatMessage { border-radius: 14px !important; margin-bottom: 0.5rem !important; }
+
+    /* === BUTTONS PREMIUM === */
+    .stButton>button {
+        width: 100% !important;
+        border-radius: 12px !important;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        color: white !important;
+        font-weight: 700 !important;
+        border: none !important;
+        transition: all 0.3s ease !important;
+        padding: 0.75rem !important;
+        height: auto !important;
+    }
+    .stButton>button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 8px 20px rgba(102,126,234,0.4) !important;
+    }
+
+    /* === ONBOARDING CARD === */
+    .onboarding-card {
+        background: #fff;
+        border: 2px solid #667eea;
+        border-radius: 18px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 10px 25px rgba(102,126,234,0.1);
+    }
+    .onboarding-text { 
+        font-size: 1.05em; 
+        color: #1e1b4b; 
+        margin-bottom: 1.2rem; 
+        line-height: 1.5;
+        font-weight: 500;
+    }
+
+    /* === MOBILE NAV === */
+    .mobile-nav { 
+        display: none; 
+        background: #f8f9fc;
+        padding: 0.8rem;
+        border-radius: 15px;
+        margin-bottom: 1.5rem;
+        border: 1px solid #eef2f6;
+    }
+    @media (max-width: 900px) {
+        .mobile-nav { display: block; }
+        .mobile-nav [data-testid="stSelectbox"] { margin-bottom: 0; }
+        .m-card { margin-bottom: 0.5rem; }
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -362,11 +434,50 @@ def main():
         </div>
     """, unsafe_allow_html=True)
 
+    opcoes_paginas = [
+        "💬 Chat IA",
+        "📊 Gastos",
+        "🎯 Simulador",
+        "📈 Recomendações",
+        "👤 Meu Perfil",
+        "ℹ️ Sobre",
+        "📜 Histórico",
+    ]
+
+    if "pagina" not in st.session_state:
+        st.session_state.pagina = "💬 Chat IA"
+
+    def on_sidebar_change():
+        st.session_state.nav_source = "sidebar"
+
+    def on_mobile_change():
+        st.session_state.nav_source = "mobile"
+        st.session_state.pagina = st.session_state.pagina_mobile
+
     pagina = st.sidebar.radio(
         "🧭 Navegação",
-        ["💬 Chat IA", "📊 Gastos", "🎯 Simulador", "📈 Recomendações", "👤 Meu Perfil", "ℹ️ Sobre", "📜 Histórico"],
+        opcoes_paginas,
         label_visibility="collapsed",
+        key="pagina",
+        on_change=on_sidebar_change,
     )
+
+    # Navegação mobile (aparece apenas em telas menores)
+    if "pagina_mobile" not in st.session_state:
+        st.session_state.pagina_mobile = st.session_state.pagina
+    if st.session_state.get("nav_source") == "sidebar":
+        st.session_state.pagina_mobile = st.session_state.pagina
+        st.session_state.nav_source = None
+
+    st.markdown('<div class="mobile-nav">', unsafe_allow_html=True)
+    pagina_mobile = st.selectbox(
+        "Menu rápido",
+        opcoes_paginas,
+        index=opcoes_paginas.index(st.session_state.pagina),
+        key="pagina_mobile",
+        on_change=on_mobile_change,
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
 
     st.sidebar.markdown("---")
     if modelo_gemini:
@@ -382,10 +493,17 @@ def main():
 
         # Mostrar aviso se usuário não customizou perfil
         if not st.session_state.usuario_customizado:
-            st.info(
-                "ℹ️ **Configure seu perfil primeiro!** Clique em **👤 Meu Perfil** na navegação para "
-                "fornecer seus dados e receber análises personalizadas."
-            )
+            st.markdown("""
+                <div class="onboarding-card">
+                    <div class="onboarding-text">
+                        ℹ️ <b>Configure seu perfil primeiro!</b> Clique no botão abaixo ou em 👤 <b>Meu Perfil</b> na navegação para fornecer seus dados e receber análises personalizadas.
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+
+            if st.button("👤 Acessar Meu Perfil Agora", key="cta_perfil_main"):
+                st.session_state.pagina = "👤 Meu Perfil"
+                st.rerun()
 
         render_info(
             "Olá! Sou a <b>MetaFinance</b>, sua consultora financeira com IA. Pergunte sobre "
