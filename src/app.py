@@ -454,6 +454,11 @@ def main():
         st.session_state.nav_source = "mobile"
         st.session_state.pagina = st.session_state.pagina_mobile
 
+    def go_to_profile():
+        st.session_state.nav_source = "cta"
+        st.session_state.pagina = "👤 Meu Perfil"
+        st.session_state.pagina_mobile = "👤 Meu Perfil"
+
     pagina = st.sidebar.radio(
         "🧭 Navegação",
         opcoes_paginas,
@@ -465,7 +470,7 @@ def main():
     # Navegação mobile (aparece apenas em telas menores)
     if "pagina_mobile" not in st.session_state:
         st.session_state.pagina_mobile = st.session_state.pagina
-    if st.session_state.get("nav_source") == "sidebar":
+    if st.session_state.get("nav_source") in ("sidebar", "cta"):
         st.session_state.pagina_mobile = st.session_state.pagina
         st.session_state.nav_source = None
 
@@ -478,6 +483,9 @@ def main():
         on_change=on_mobile_change,
     )
     st.markdown("</div>", unsafe_allow_html=True)
+
+    if st.session_state.get("nav_source") == "mobile":
+        st.session_state.nav_source = None
 
     st.sidebar.markdown("---")
     if modelo_gemini:
@@ -501,9 +509,11 @@ def main():
                 </div>
             """, unsafe_allow_html=True)
 
-            if st.button("👤 Acessar Meu Perfil Agora", key="cta_perfil_main"):
-                st.session_state.pagina = "👤 Meu Perfil"
-                st.rerun()
+            st.button(
+                "👤 Acessar Meu Perfil Agora",
+                key="cta_perfil_main",
+                on_click=go_to_profile,
+            )
 
         render_info(
             "Olá! Sou a <b>MetaFinance</b>, sua consultora financeira com IA. Pergunte sobre "
